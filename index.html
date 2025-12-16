@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LizOn Student Portal</title>
   <meta name="theme-color" content="#0b2a1f" />
-
   <link rel="manifest" href="/app.webmanifest">
   <link rel="icon" href="data:,">
 
@@ -13,65 +12,179 @@
     :root{
       --bg:#06140f; --card:#0c2019; --line:#1d4a3a;
       --text:#e9f3ef; --muted:#b7c9c2; --gold:#d7b24a;
+      --danger:#ff6b6b;
     }
     body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
-    .wrap{max-width:900px;margin:0 auto;padding:22px;}
+    .wrap{max-width:960px;margin:0 auto;padding:22px;}
     .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
-    .btn{display:inline-block;padding:12px 14px;border-radius:12px;border:1px solid var(--line);text-decoration:none;color:var(--text);background:transparent}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .btn{display:inline-block;padding:12px 14px;border-radius:12px;border:1px solid var(--line);text-decoration:none;color:var(--text);background:transparent;cursor:pointer}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn.danger{border-color:rgba(255,107,107,.6)}
+    input, select{
+      width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
+      background:#071a14;color:var(--text);outline:none;
+    }
+    label{display:block;margin-top:10px}
     small{color:var(--muted)}
+    .hidden{display:none !important}
+    .hr{height:1px;background:var(--line);margin:14px 0}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:999px}
+    .ok{color:#7CFFB2}
+    .err{color:var(--danger)}
+    code{background:#071a14;border:1px solid var(--line);padding:2px 6px;border-radius:8px}
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <h1>LizOn Education — Student Portal</h1>
-    <small>PWA demo (Day 2): installable on mobile + PC.</small>
+    <small>Day 3: Real Auth + Profile creation (Supabase)</small>
 
-    <div class="card">
-      <h2>What you can do (coming next)</h2>
-      <ul>
-        <li>Login / Signup</li>
-        <li>Choose course: ZERO / HOPE / STEP-UP / DESPERATE</li>
-        <li>Submit payment info</li>
-        <li>After approval: routine + class link + profile</li>
-      </ul>
-
-      <div class="row">
-        <a class="btn primary" href="#login">Go to Login (demo)</a>
-        <a class="btn" href="#install">How to install</a>
+    <div class="card" id="configCard">
+      <h2>Step 0: Paste Supabase Keys</h2>
+      <p><small>Open <b>Supabase → Project Settings → API</b> and paste your values inside the code where it says <code>PASTE_HERE</code>.</small></p>
+      <div class="pill">
+        <span>Auth status:</span>
+        <b id="authStatus">checking…</b>
       </div>
     </div>
 
-    <div class="card" id="login">
-      <h2>Login (demo screen)</h2>
-      <p><small>Day 3 will make this real with Supabase login.</small></p>
+    <div class="card" id="authCard">
+      <h2>Login / Signup</h2>
+      <p><small>Create account once. Then login anytime.</small></p>
 
-      <label>Email<br><input style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#071a14;color:var(--text)" placeholder="you@example.com"></label>
-      <br><br>
-      <label>Password<br><input type="password" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#071a14;color:var(--text)" placeholder="••••••••"></label>
-      <br><br>
-      <button class="btn primary" onclick="alert('Day 3 te real login hobe. Ajke just shell.');">Login</button>
+      <div class="row">
+        <button class="btn primary" id="tabLogin">Login</button>
+        <button class="btn" id="tabSignup">Signup</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- LOGIN -->
+      <div id="loginBox">
+        <label>Email
+          <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        </label>
+        <label>Password
+          <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </label>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="btnLogin">Login</button>
+        </div>
+      </div>
+
+      <!-- SIGNUP -->
+      <div id="signupBox" class="hidden">
+        <label>Full Name
+          <input id="suName" placeholder="Your full name">
+        </label>
+        <label>Phone
+          <input id="suPhone" placeholder="01XXXXXXXXX">
+        </label>
+        <label>University
+          <input id="suUni" placeholder="Your university / college">
+        </label>
+        <label>Email
+          <input id="suEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        </label>
+        <label>Password
+          <input id="suPass" type="password" placeholder="Create a password" autocomplete="new-password">
+        </label>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="btnSignup">Create Account</button>
+        </div>
+
+        <p><small>Note: If Supabase email confirmation is ON, you’ll need to verify email before login.</small></p>
+      </div>
+
+      <p id="msg" style="margin-top:12px"></p>
     </div>
 
-    <div class="card" id="install">
-      <h2>Install it like an app</h2>
+    <div class="card hidden" id="dashCard">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h2 style="margin:0">Dashboard</h2>
+          <small id="who"></small>
+        </div>
+        <div class="row">
+          <button class="btn danger" id="btnLogout">Logout</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <h3 style="margin:0 0 10px 0">Your Profile</h3>
+      <div id="profileView"><small>Loading profile…</small></div>
+
+      <div class="hr"></div>
+
+      <h3 style="margin:0 0 10px 0">Next (Day 4)</h3>
       <ul>
-        <li><b>Android:</b> Chrome → menu → “Add to Home screen”</li>
-        <li><b>iPhone:</b> Safari → Share → “Add to Home Screen”</li>
-        <li><b>Windows/Mac:</b> Chrome/Edge → Install icon in address bar</li>
+        <li>Show 4 courses from database</li>
+        <li>Apply/Admit form → save into <code>applications</code></li>
+        <li>Status: pending / approved</li>
       </ul>
     </div>
   </div>
 
+  <!-- Supabase JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
-    // Register service worker (PWA)
+    // PWA Service Worker (from Day 2)
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("/sw.js").catch(console.error);
       });
     }
-  </script>
-</body>
-</html>
+
+    /* =========================
+       1) PASTE YOUR SUPABASE KEYS HERE
+       ========================= */
+    const SUPABASE_URL = "PASTE_HERE";
+    const SUPABASE_ANON_KEY = "PASTE_HERE";
+
+    const el = (id) => document.getElementById(id);
+    const msg = (text, ok=true) => {
+      const m = el("msg");
+      m.textContent = text || "";
+      m.className = ok ? "ok" : "err";
+    };
+
+    const tabLogin = () => {
+      el("loginBox").classList.remove("hidden");
+      el("signupBox").classList.add("hidden");
+      el("tabLogin").classList.add("primary");
+      el("tabSignup").classList.remove("primary");
+      msg("");
+    };
+    const tabSignup = () => {
+      el("signupBox").classList.remove("hidden");
+      el("loginBox").classList.add("hidden");
+      el("tabSignup").classList.add("primary");
+      el("tabLogin").classList.remove("primary");
+      msg("");
+    };
+
+    el("tabLogin").onclick = tabLogin;
+    el("tabSignup").onclick = tabSignup;
+    tabLogin();
+
+    // Guard: keys must be pasted
+    const keysLookValid = () =>
+      SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 50;
+
+    let supabase = null;
+
+    async function init(){
+      if(!keysLookValid()){
+        el("authStatus").textContent = "❌ paste Supabase keys in code";
+        el("authStatus").className = "err";
+        return;
+      }
+
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      el("authStatus").textContent = "✅ keys loaded";
+      el("authStatus").className = "ok";
