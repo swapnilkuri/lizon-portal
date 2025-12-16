@@ -1,4 +1,5 @@
-const CACHE = "lizon-portal-v6";
+const CACHE = "lizon-portal-v100";
+
 
 const ASSETS = ["/", "/index.html", "/app.webmanifest", "/sw.js"];
 
