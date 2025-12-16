@@ -18,291 +18,164 @@
     .wrap{max-width:960px;margin:0 auto;padding:22px;}
     .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-block;padding:12px 14px;border-radius:12px;border:1px solid var(--line);text-decoration:none;color:var(--text);background:transparent;cursor:pointer}
+    .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
-    input, select{
+    input{
       width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
-      background:#071a14;color:var(--text);outline:none;
+      background:#071a14;color:var(--text);
     }
     label{display:block;margin-top:10px}
     small{color:var(--muted)}
-    .hidden{display:none !important}
+    .hidden{display:none}
     .hr{height:1px;background:var(--line);margin:14px 0}
-    .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:999px}
     .ok{color:#7CFFB2}
     .err{color:var(--danger)}
-    code{background:#071a14;border:1px solid var(--line);padding:2px 6px;border-radius:8px}
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <h1>LizOn Education — Student Portal</h1>
-    <small>Day 3: Real Auth + Profile creation (Supabase)</small>
+<div class="wrap">
+  <h1>LizOn Education — Student Portal</h1>
+  <small>Day 3 — Real Login & Profile (No University)</small>
 
-    <div class="card" id="configCard">
-      <h2>Step 0: Paste Supabase Keys</h2>
-      <p><small>Open <b>Supabase → Project Settings → API</b> and paste your values inside the code where it says <code>PASTE_HERE</code>.</small></p>
-      <div class="pill">
-        <span>Auth status:</span>
-        <b id="authStatus">checking…</b>
+  <!-- AUTH -->
+  <div class="card" id="authCard">
+    <h2>Login / Signup</h2>
+
+    <div class="row">
+      <button class="btn primary" id="tabLogin">Login</button>
+      <button class="btn" id="tabSignup">Signup</button>
+    </div>
+
+    <div class="hr"></div>
+
+    <!-- LOGIN -->
+    <div id="loginBox">
+      <label>Email
+        <input id="loginEmail" type="email" placeholder="you@example.com">
+      </label>
+      <label>Password
+        <input id="loginPass" type="password" placeholder="••••••••">
+      </label>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnLogin">Login</button>
       </div>
     </div>
 
-    <div class="card" id="authCard">
-      <h2>Login / Signup</h2>
-      <p><small>Create account once. Then login anytime.</small></p>
+    <!-- SIGNUP -->
+    <div id="signupBox" class="hidden">
+      <label>Full Name
+        <input id="suName" placeholder="Your full name">
+      </label>
+      <label>Phone
+        <input id="suPhone" placeholder="01XXXXXXXXX">
+      </label>
+      <label>Email
+        <input id="suEmail" type="email" placeholder="you@example.com">
+      </label>
+      <label>Password
+        <input id="suPass" type="password" placeholder="Create a password">
+      </label>
 
-      <div class="row">
-        <button class="btn primary" id="tabLogin">Login</button>
-        <button class="btn" id="tabSignup">Signup</button>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnSignup">Create Account</button>
       </div>
-
-      <div class="hr"></div>
-
-      <!-- LOGIN -->
-      <div id="loginBox">
-        <label>Email
-          <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email">
-        </label>
-        <label>Password
-          <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
-        </label>
-        <div class="row" style="margin-top:12px">
-          <button class="btn primary" id="btnLogin">Login</button>
-        </div>
-      </div>
-
-      <!-- SIGNUP -->
-      <div id="signupBox" class="hidden">
-        <label>Full Name
-          <input id="suName" placeholder="Your full name">
-        </label>
-        <label>Phone
-          <input id="suPhone" placeholder="01XXXXXXXXX">
-        </label>
-        <label>University
-          <input id="suUni" placeholder="Your university / college">
-        </label>
-        <label>Email
-          <input id="suEmail" type="email" placeholder="you@example.com" autocomplete="email">
-        </label>
-        <label>Password
-          <input id="suPass" type="password" placeholder="Create a password" autocomplete="new-password">
-        </label>
-
-        <div class="row" style="margin-top:12px">
-          <button class="btn primary" id="btnSignup">Create Account</button>
-        </div>
-
-        <p><small>Note: If Supabase email confirmation is ON, you’ll need to verify email before login.</small></p>
-      </div>
-
-      <p id="msg" style="margin-top:12px"></p>
     </div>
 
-    <div class="card hidden" id="dashCard">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <h2 style="margin:0">Dashboard</h2>
-          <small id="who"></small>
-        </div>
-        <div class="row">
-          <button class="btn danger" id="btnLogout">Logout</button>
-        </div>
-      </div>
-
-      <div class="hr"></div>
-
-      <h3 style="margin:0 0 10px 0">Your Profile</h3>
-      <div id="profileView"><small>Loading profile…</small></div>
-
-      <div class="hr"></div>
-
-      <h3 style="margin:0 0 10px 0">Next (Day 4)</h3>
-      <ul>
-        <li>Show 4 courses from database</li>
-        <li>Apply/Admit form → save into <code>applications</code></li>
-        <li>Status: pending / approved</li>
-      </ul>
-    </div>
+    <p id="msg"></p>
   </div>
 
-  <!-- Supabase JS (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- DASHBOARD -->
+  <div class="card hidden" id="dashCard">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h2>Dashboard</h2>
+        <small id="who"></small>
+      </div>
+      <button class="btn danger" id="btnLogout">Logout</button>
+    </div>
 
-  <script>
-    // PWA Service Worker (from Day 2)
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(console.error);
-      });
-    }
+    <div class="hr"></div>
 
-    /* =========================
-       1) PASTE YOUR SUPABASE KEYS HERE
-       ========================= */
-    const SUPABASE_URL = "PASTE_HERE";
-    const SUPABASE_ANON_KEY = "PASTE_HERE";
+    <h3>Your Profile</h3>
+    <div id="profileView">Loading...</div>
+  </div>
+</div>
 
-    const el = (id) => document.getElementById(id);
-    const msg = (text, ok=true) => {
-      const m = el("msg");
-      m.textContent = text || "";
-      m.className = ok ? "ok" : "err";
-    };
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    const tabLogin = () => {
-      el("loginBox").classList.remove("hidden");
-      el("signupBox").classList.add("hidden");
-      el("tabLogin").classList.add("primary");
-      el("tabSignup").classList.remove("primary");
-      msg("");
-    };
-    const tabSignup = () => {
-      el("signupBox").classList.remove("hidden");
-      el("loginBox").classList.add("hidden");
-      el("tabSignup").classList.add("primary");
-      el("tabLogin").classList.remove("primary");
-      msg("");
-    };
+<script>
+/* ========= SUPABASE CONFIG ========= */
+const SUPABASE_URL = "PASTE_HERE";
+const SUPABASE_ANON_KEY = "PASTE_HERE";
 
-    el("tabLogin").onclick = tabLogin;
-    el("tabSignup").onclick = tabSignup;
-    tabLogin();
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const el = id => document.getElementById(id);
+const msg = (t, ok=true)=>{ el("msg").textContent=t; el("msg").className=ok?"ok":"err"; };
 
-    // Guard: keys must be pasted
-    const keysLookValid = () =>
-      SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 50;
+/* ========= TABS ========= */
+el("tabLogin").onclick = ()=>{ el("loginBox").classList.remove("hidden"); el("signupBox").classList.add("hidden"); };
+el("tabSignup").onclick = ()=>{ el("signupBox").classList.remove("hidden"); el("loginBox").classList.add("hidden"); };
 
-    let supabase = null;
+/* ========= AUTH ========= */
+el("btnLogin").onclick = async ()=>{
+  const email = el("loginEmail").value;
+  const password = el("loginPass").value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if(error) msg(error.message,false);
+};
 
-    async function init(){
-      if(!keysLookValid()){
-        el("authStatus").textContent = "❌ paste Supabase keys in code";
-        el("authStatus").className = "err";
-        return;
-      }
+el("btnSignup").onclick = async ()=>{
+  const name = el("suName").value;
+  const phone = el("suPhone").value;
+  const email = el("suEmail").value;
+  const password = el("suPass").value;
 
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      el("authStatus").textContent = "✅ keys loaded";
-      el("authStatus").className = "ok";
+  if(!name || !phone || !email || !password){
+    return msg("All fields are required",false);
+  }
 
-      // Render based on session
-      const { data: { session } } = await supabase.auth.getSession();
-      await renderSession(session);
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if(error) return msg(error.message,false);
 
-      // Listen for auth changes
-      supabase.auth.onAuthStateChange(async (_event, session2) => {
-        await renderSession(session2);
-      });
-    }
+  if(data.user){
+    await supabase.from("profiles").insert([{
+      id: data.user.id,
+      name,
+      phone,
+      role: "student"
+    }]);
+  }
 
-    async function renderSession(session){
-      if(session?.user){
-        el("authCard").classList.add("hidden");
-        el("dashCard").classList.remove("hidden");
-        el("who").textContent = `Logged in as ${session.user.email}`;
-        await loadMyProfile(session.user.id);
-      }else{
-        el("dashCard").classList.add("hidden");
-        el("authCard").classList.remove("hidden");
-      }
-    }
+  msg("Account created. Now login.");
+};
 
-    async function loadMyProfile(userId){
-      el("profileView").innerHTML = "<small>Loading profile…</small>";
+el("btnLogout").onclick = ()=> supabase.auth.signOut();
 
-      // Get profile row
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name, phone, university, role, created_at")
-        .eq("id", userId)
-        .maybeSingle();
+/* ========= SESSION ========= */
+supabase.auth.onAuthStateChange(async (_, session)=>{
+  if(session){
+    el("authCard").classList.add("hidden");
+    el("dashCard").classList.remove("hidden");
+    el("who").textContent = session.user.email;
 
-      if(error){
-        el("profileView").innerHTML = `<p class="err">Profile load error: ${error.message}</p>`;
-        return;
-      }
+    const { data } = await supabase
+      .from("profiles")
+      .select("name, phone, role")
+      .eq("id", session.user.id)
+      .single();
 
-      if(!data){
-        // If profile row missing, show message (usually means Day 1 profile sync not set up)
-        el("profileView").innerHTML =
-          `<p class="err">No profile row found for this user. Day 1 table or insert step might be missing.</p>
-           <p><small>Fix: create a row in <code>profiles</code> where <code>id</code> = this user id.</small></p>`;
-        return;
-      }
-
-      el("profileView").innerHTML = `
-        <div class="card" style="margin-top:0">
-          <p><b>Name:</b> ${escapeHtml(data.name || "")}</p>
-          <p><b>Phone:</b> ${escapeHtml(data.phone || "")}</p>
-          <p><b>University:</b> ${escapeHtml(data.university || "")}</p>
-          <p><b>Role:</b> ${escapeHtml(data.role || "student")}</p>
-        </div>
-      `;
-    }
-
-    function escapeHtml(s){
-      return String(s || "").replace(/[&<>"']/g, (c) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-      }[c]));
-    }
-
-    // LOGIN
-    el("btnLogin").onclick = async () => {
-      msg("Logging in...");
-      const email = el("loginEmail").value.trim();
-      const password = el("loginPass").value;
-
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if(error) return msg(error.message, false);
-      msg("");
-    };
-
-    // SIGNUP + create profile row
-    el("btnSignup").onclick = async () => {
-      msg("Creating account...");
-      const name = el("suName").value.trim();
-      const phone = el("suPhone").value.trim();
-      const university = el("suUni").value.trim();
-      const email = el("suEmail").value.trim();
-      const password = el("suPass").value;
-
-      if(!name || !phone || !university || !email || !password){
-        return msg("Fill all fields (name, phone, university, email, password).", false);
-      }
-
-      // 1) Create auth user
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if(error) return msg(error.message, false);
-
-      // If email confirmation is ON, session may be null until verified
-      const userId = data?.user?.id;
-
-      // 2) Create profiles row (best effort)
-      if(userId){
-        const { error: pErr } = await supabase.from("profiles").insert([{
-          id: userId, name, phone, university, role: "student"
-        }]);
-        // If RLS blocks this now, we’ll fix properly on Day 7 (security day).
-        if(pErr){
-          msg("Account created, but profile insert blocked. We’ll fix with RLS policy soon. For now admin can add profile row.", false);
-          return;
-        }
-      }
-
-      msg("Account created! Now login.", true);
-      tabLogin();
-    };
-
-    // LOGOUT
-    el("btnLogout").onclick = async () => {
-      await supabase.auth.signOut();
-    };
-
-    init();
-  </script>
+    el("profileView").innerHTML = `
+      <p><b>Name:</b> ${data.name}</p>
+      <p><b>Phone:</b> ${data.phone}</p>
+      <p><b>Role:</b> ${data.role}</p>
+    `;
+  }else{
+    el("authCard").classList.remove("hidden");
+    el("dashCard").classList.add("hidden");
+  }
+});
+</script>
 </body>
 </html>
