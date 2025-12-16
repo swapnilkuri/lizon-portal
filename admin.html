@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LizOn Admin Panel</title>
+  <meta name="theme-color" content="#0b2a1f" />
+  <style>
+    :root{
+      --bg:#06140f; --card:#0c2019; --line:#1d4a3a;
+      --text:#e9f3ef; --muted:#b7c9c2; --gold:#d7b24a;
+      --danger:#ff6b6b; --ok:#7CFFB2;
+    }
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
+    .wrap{max-width:1100px;margin:0 auto;padding:22px;}
+    .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .between{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .btn{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+    .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
+    .btn.danger{border-color:rgba(255,107,107,.6)}
+    input, select{
+      width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
+      background:#071a14;color:var(--text);
+    }
+    label{display:block;margin-top:10px}
+    small{color:var(--muted)}
+    .hidden{display:none}
+    .hr{height:1px;background:var(--line);margin:14px 0}
+    .ok{color:var(--ok)}
+    .err{color:var(--danger)}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--line);padding:10px;vertical-align:top;text-align:left;font-size:14px}
+    .tag{display:inline-block;border:1px solid var(--line);padding:4px 8px;border-radius:999px;color:var(--muted);font-size:12px}
+    code{color:#b7c9c2}
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="between">
+    <div>
+      <h1 style="margin:0">LizOn Education — Admin Panel</h1>
+      <small>Day 5 — Approvals + Enrollments</small>
+    </div>
+    <div class="row">
+      <a class="btn" href="/index.html">Student Portal</a>
+      <button class="btn danger hidden" id="btnLogout">Logout</button>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="card" id="authCard">
+    <h2 style="margin-top:0">Admin Login</h2>
+    <small>Only admins can access this page.</small>
+
+    <label>Email
+      <input id="email" type="email" placeholder="admin@email.com">
+    </label>
+    <label>Password
+      <input id="pass" type="password" placeholder="••••••••">
+    </label>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="btnLogin">Login</button>
+    </div>
+
+    <p id="msg"></p>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="card hidden" id="adminCard">
+    <div class="between">
+      <div>
+        <h2 style="margin:0">Applications</h2>
+        <small id="who"></small>
+      </div>
+      <div class="row">
+        <button class="btn" id="btnRefresh">Refresh</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <label style="min-width:240px;flex:1">Filter by Status
+        <select id="statusFilter">
+          <option value="all">All</option>
+          <option value="pending" selected>Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </label>
+      <label style="min-width:240px;flex:1">Course
+        <select id="courseFilter">
+          <option value="all">All</option>
+        </select>
+      </label>
+    </div>
+
+    <div style="overflow:auto;margin-top:12px">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>User</th>
+            <th>Course</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="appsTbody">
+          <tr><td colspan="6"><small>Loading…</small></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="hr"></div>
+
+    <h2 style="margin:0">Manual Enroll (Existing Student)</h2>
+    <small>Use this to enroll existing students without payment. You can get User ID from Supabase → Authentication → Users.</small>
+
+    <div class="row" style="margin-top:10px">
+      <label style="min-width:320px;flex:2">Student User ID (uuid)
+        <input id="enrollUserId" placeholder="e.g., 8fd0...">
+      </label>
+      <label style="min-width:240px;flex:1">Course
+        <select id="enrollCourse"></select>
+      </label>
+      <label style="min-width:200px;flex:1">Status
+        <select id="enrollStatus">
+          <option value="active" selected>active</option>
+          <option value="inactive">inactive</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="btnManualEnroll">Enroll Now</button>
+    </div>
+
+    <p id="enrollMsg"></p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ✅ Replace ONLY these 2 lines
+  const SUPABASE_URL = "PASTE_HERE";
+  const SUPABASE_ANON_KEY = "PASTE_HERE";
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const el = (id)=>document.getElementById(id);
+
+  const msg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
+  const enrollMsg = (t, ok=true)=>{ el("enrollMsg").textContent=t||""; el("enrollMsg").className=ok?"ok":"err"; };
+
+  let me = null;
+  let courses = [];
+
+  el("btnLogin").onclick = async ()=>{
+    msg("Logging in…");
+    const email = el("email").value.trim();
+    const password = el("pass").value;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) return msg(error.message,false);
+    msg("");
+  };
+
+  el("btnLogout").onclick = ()=> supabase.auth.signOut();
+
+  el("btnRefresh").onclick = async ()=>{
+    await loadApplications();
+  };
+
+  el("statusFilter").onchange = loadApplications;
+  el("courseFilter").onchange = loadApplications;
+
+  async function isAdmin(userId){
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role, name")
+      .eq("id", userId)
+      .maybeSingle();
+    if(error) throw error;
+    return data?.role === "admin";
+  }
+
+  async function loadCourses(){
+    const { data, error } = await supabase
+      .from("courses")
+      .select("id, slug, title")
+      .order("id",{ascending:true});
+    if(error) throw error;
+    courses = data || [];
+
+    // Filters
+    const cf = el("courseFilter");
+    cf.innerHTML = `<option value="all">All</option>` + courses.map(c =>
+      `<option value="${c.id}">${escapeHtml(c.title)}</option>`
+    ).join("");
+
+    // Manual enroll select
+    const ec = el("enrollCourse");
+    ec.innerHTML = courses.map(c =>
+      `<option value="${c.id}">${escapeHtml(c.title)}</option>`
+    ).join("");
+  }
+
+  function courseTitle(id){
+    const c = courses.find(x=>x.id===id);
+    return c ? c.title : `Course #${id}`;
+  }
+
+  async function loadApplications(){
+    const tbody = el("appsTbody");
+    tbody.innerHTML = `<tr><td colspan="6"><small>Loading…</small></td></tr>`;
+
+    let q = supabase
+      .from("applications")
+      .select("id, user_id, course_id, payment_method, trx_id, screenshot_url, status, created_at")
+      .order("created_at",{ascending:false});
+
+    const sf = el("statusFilter").value;
+    if(sf !== "all") q = q.eq("status", sf);
+
+    const cf = el("courseFilter").value;
+    if(cf !== "all") q = q.eq("course_id", Number(cf));
+
+    const { data, error } = await q;
+    if(error){
+      tbody.innerHTML = `<tr><td colspan="6" class="err">${escapeHtml(error.message)}</td></tr>`;
+      return;
+    }
+
+    if(!data?.length){
+      tbody.innerHTML = `<tr><td colspan="6"><small>No applications found.</small></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(a => `
+      <tr>
+        <td><small>${new Date(a.created_at).toLocaleString()}</small></td>
+        <td>
+          <div class="tag">user_id</div><br>
+          <code>${escapeHtml(a.user_id)}</code>
+        </td>
+        <td>${escapeHtml(courseTitle(a.course_id))}</td>
+        <td>
+          <small>Method: ${escapeHtml(a.payment_method||"-")}</small><br>
+          <small>Trx: ${escapeHtml(a.trx_id||"-")}</small><br>
+          <small>Shot: ${escapeHtml(a.screenshot_url||"-")}</small>
+        </td>
+        <td><span class="tag">${escapeHtml(a.status||"pending")}</span></td>
+        <td>
+          <div class="row">
+            <button class="btn primary" onclick="window.__approve('${a.id}','${a.user_id}',${a.course_id})">Approve</button>
+            <button class="btn danger" onclick="window.__reject('${a.id}')">Reject</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function approve(appId, userId, courseId){
+    // 1) update application status
+    const { error: e1 } = await supabase
+      .from("applications")
+      .update({ status: "approved" })
+      .eq("id", appId);
+    if(e1) return alert(e1.message);
+
+    // 2) create enrollment (upsert-ish by checking existing)
+    const { data: existing, error: e2 } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("course_id", courseId)
+      .maybeSingle();
+    if(e2) return alert(e2.message);
+
+    if(!existing){
+      const { error: e3 } = await supabase.from("enrollments").insert([{
+        user_id: userId,
+        course_id: courseId,
+        status: "active"
+      }]);
+      if(e3) return alert(e3.message);
+    }
+
+    await loadApplications();
+    alert("Approved + Enrollment created.");
+  }
+
+  async function reject(appId){
+    const { error } = await supabase
+      .from("applications")
+      .update({ status: "rejected" })
+      .eq("id", appId);
+    if(error) return alert(error.message);
+
+    await loadApplications();
+    alert("Rejected.");
+  }
+
+  el("btnManualEnroll").onclick = async ()=>{
+    enrollMsg("Enrolling…");
+    const userId = el("enrollUserId").value.trim();
+    const courseId = Number(el("enrollCourse").value);
+    const status = el("enrollStatus").value;
+
+    if(!userId) return enrollMsg("User ID is required.", false);
+
+    // Check existing
+    const { data: existing, error: e1 } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("course_id", courseId)
+      .maybeSingle();
+    if(e1) return enrollMsg(e1.message,false);
+
+    if(existing) return enrollMsg("Already enrolled for this course.", false);
+
+    const { error: e2 } = await supabase.from("enrollments").insert([{
+      user_id: userId,
+      course_id: courseId,
+      status
+    }]);
+    if(e2) return enrollMsg(e2.message,false);
+
+    enrollMsg("Enrolled successfully.", true);
+  };
+
+  function escapeHtml(s){
+    return String(s || "").replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+
+  // Expose actions
+  window.__approve = approve;
+  window.__reject = reject;
+
+  supabase.auth.onAuthStateChange(async (_, session)=>{
+    const loggedIn = !!session?.user;
+    el("btnLogout").classList.toggle("hidden", !loggedIn);
+
+    if(!loggedIn){
+      me = null;
+      el("authCard").classList.remove("hidden");
+      el("adminCard").classList.add("hidden");
+      return;
+    }
+
+    me = session.user;
+    el("who").textContent = `Logged in as ${me.email}`;
+
+    try{
+      const ok = await isAdmin(me.id);
+      if(!ok){
+        el("authCard").classList.remove("hidden");
+        el("adminCard").classList.add("hidden");
+        msg("Access denied. This page is admin-only.", false);
+        return;
+      }
+
+      el("authCard").classList.add("hidden");
+      el("adminCard").classList.remove("hidden");
+      msg("");
+
+      await loadCourses();
+      await loadApplications();
+
+    }catch(err){
+      msg(err.message || "Admin check failed.", false);
+    }
+  });
+</script>
+</body>
+</html>
