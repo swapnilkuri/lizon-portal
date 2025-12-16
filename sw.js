@@ -1,4 +1,4 @@
-const CACHE = "lizon-portal-v1";
+const CACHE = "lizon-portal-v4";
 const ASSETS = ["/", "/index.html", "/app.webmanifest", "/sw.js"];
 
 self.addEventListener("install", (e) => {
