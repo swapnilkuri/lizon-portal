@@ -12,16 +12,17 @@
     :root{
       --bg:#06140f; --card:#0c2019; --line:#1d4a3a;
       --text:#e9f3ef; --muted:#b7c9c2; --gold:#d7b24a;
-      --danger:#ff6b6b;
+      --danger:#ff6b6b; --ok:#7CFFB2;
     }
     body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
-    .wrap{max-width:960px;margin:0 auto;padding:22px;}
+    .wrap{max-width:980px;margin:0 auto;padding:22px;}
     .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .between{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
     .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
-    input{
+    input, select{
       width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
       background:#071a14;color:var(--text);
     }
@@ -29,15 +30,19 @@
     small{color:var(--muted)}
     .hidden{display:none}
     .hr{height:1px;background:var(--line);margin:14px 0}
-    .ok{color:#7CFFB2}
+    .ok{color:var(--ok)}
     .err{color:var(--danger)}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    @media (max-width:760px){ .grid{grid-template-columns:1fr} }
+    .tag{display:inline-block;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted)}
+    .price{font-size:22px;font-weight:800}
   </style>
 </head>
 
 <body>
 <div class="wrap">
   <h1>LizOn Education — Student Portal</h1>
-  <small>Day 3 — Real Login & Profile (No University)</small>
+  <small>Day 4 — Courses + Admit Now + Applications</small>
 
   <!-- AUTH -->
   <div class="card" id="authCard">
@@ -81,6 +86,8 @@
       <div class="row" style="margin-top:12px">
         <button class="btn primary" id="btnSignup">Create Account</button>
       </div>
+
+      <p><small>If Supabase email confirmation is ON, verify email before login.</small></p>
     </div>
 
     <p id="msg"></p>
@@ -88,9 +95,9 @@
 
   <!-- DASHBOARD -->
   <div class="card hidden" id="dashCard">
-    <div class="row" style="justify-content:space-between">
+    <div class="between">
       <div>
-        <h2>Dashboard</h2>
+        <h2 style="margin:0">Dashboard</h2>
         <small id="who"></small>
       </div>
       <button class="btn danger" id="btnLogout">Logout</button>
@@ -98,8 +105,68 @@
 
     <div class="hr"></div>
 
-    <h3>Your Profile</h3>
-    <div id="profileView">Loading...</div>
+    <div class="grid">
+      <div class="card" style="margin-top:0">
+        <h3 style="margin-top:0">Your Profile</h3>
+        <div id="profileView"><small>Loading…</small></div>
+      </div>
+
+      <div class="card" style="margin-top:0">
+        <h3 style="margin-top:0">Help</h3>
+        <p style="margin:0 0 8px 0"><small>
+          Existing students: signup/login and admin will enroll you (Day 5). New students: apply below.
+        </small></p>
+        <div class="row">
+          <a class="btn" href="https://wa.me/" target="_blank" rel="noopener">Talk with LizOn</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <h3 style="margin:0 0 10px 0">Courses</h3>
+    <div id="coursesBox"><small>Loading courses…</small></div>
+
+    <div class="hr"></div>
+
+    <h3 style="margin:0 0 10px 0">My Applications</h3>
+    <div id="appsBox"><small>Loading applications…</small></div>
+  </div>
+
+  <!-- APPLY MODAL (simple inline) -->
+  <div class="card hidden" id="applyCard">
+    <div class="between">
+      <div>
+        <h2 style="margin:0">Admit Now</h2>
+        <small id="applyCourseName"></small>
+      </div>
+      <button class="btn" id="btnCloseApply">Close</button>
+    </div>
+
+    <div class="hr"></div>
+
+    <label>Payment Method
+      <select id="payMethod">
+        <option value="Bkash">Bkash</option>
+        <option value="Nagad">Nagad</option>
+        <option value="Rocket">Rocket</option>
+        <option value="Card">Card</option>
+      </select>
+    </label>
+
+    <label>Transaction ID (optional if you provide screenshot link)
+      <input id="trxId" placeholder="e.g., 9A7B6C5D...">
+    </label>
+
+    <label>Screenshot URL (optional)
+      <input id="shotUrl" placeholder="Paste a link (Google Drive/Imgur/etc.)">
+    </label>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" id="btnSubmitApply">Submit</button>
+    </div>
+
+    <p id="applyMsg" style="margin-top:10px"></p>
   </div>
 </div>
 
@@ -109,73 +176,218 @@
 /* ========= SUPABASE CONFIG ========= */
 const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
-
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const el = id => document.getElementById(id);
-const msg = (t, ok=true)=>{ el("msg").textContent=t; el("msg").className=ok?"ok":"err"; };
+const msg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
+const applyMsg = (t, ok=true)=>{ el("applyMsg").textContent=t||""; el("applyMsg").className=ok?"ok":"err"; };
+
+let currentUser = null;
+let selectedCourse = null;
 
 /* ========= TABS ========= */
-el("tabLogin").onclick = ()=>{ el("loginBox").classList.remove("hidden"); el("signupBox").classList.add("hidden"); };
-el("tabSignup").onclick = ()=>{ el("signupBox").classList.remove("hidden"); el("loginBox").classList.add("hidden"); };
+el("tabLogin").onclick = ()=>{ el("loginBox").classList.remove("hidden"); el("signupBox").classList.add("hidden"); msg(""); };
+el("tabSignup").onclick = ()=>{ el("signupBox").classList.remove("hidden"); el("loginBox").classList.add("hidden"); msg(""); };
 
 /* ========= AUTH ========= */
 el("btnLogin").onclick = async ()=>{
-  const email = el("loginEmail").value;
+  msg("Logging in…");
+  const email = el("loginEmail").value.trim();
   const password = el("loginPass").value;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if(error) msg(error.message,false);
+  if(error) return msg(error.message,false);
+  msg("");
 };
 
 el("btnSignup").onclick = async ()=>{
-  const name = el("suName").value;
-  const phone = el("suPhone").value;
-  const email = el("suEmail").value;
+  msg("Creating account…");
+  const name = el("suName").value.trim();
+  const phone = el("suPhone").value.trim();
+  const email = el("suEmail").value.trim();
   const password = el("suPass").value;
 
   if(!name || !phone || !email || !password){
-    return msg("All fields are required",false);
+    return msg("All fields are required.",false);
   }
 
   const { data, error } = await supabase.auth.signUp({ email, password });
   if(error) return msg(error.message,false);
 
+  // Create profile row (best effort; RLS might block until we set policies later)
   if(data.user){
-    await supabase.from("profiles").insert([{
-      id: data.user.id,
-      name,
-      phone,
-      role: "student"
+    const { error: pErr } = await supabase.from("profiles").insert([{
+      id: data.user.id, name, phone, role: "student"
     }]);
+    if(pErr){
+      // not fatal for MVP; admin can insert profile row manually if needed
+      msg("Account created, but profile insert blocked (security). Try login; if profile missing, admin can add once.", false);
+    } else {
+      msg("Account created. Now login.", true);
+      el("tabLogin").click();
+    }
+  } else {
+    msg("Account created. Verify email if required, then login.", true);
   }
-
-  msg("Account created. Now login.");
 };
 
 el("btnLogout").onclick = ()=> supabase.auth.signOut();
 
+/* ========= APPLY UI ========= */
+el("btnCloseApply").onclick = ()=>{
+  el("applyCard").classList.add("hidden");
+  applyMsg("");
+  selectedCourse = null;
+};
+
+function openApply(course){
+  selectedCourse = course;
+  el("applyCourseName").textContent = `${course.title} — Price: ${course.price}`;
+  el("payMethod").value = "Bkash";
+  el("trxId").value = "";
+  el("shotUrl").value = "";
+  applyMsg("");
+  el("applyCard").classList.remove("hidden");
+  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+}
+
+el("btnSubmitApply").onclick = async ()=>{
+  applyMsg("Submitting…");
+  if(!currentUser || !selectedCourse) return applyMsg("Session missing. Please login again.", false);
+
+  const payment_method = el("payMethod").value;
+  const trx_id = el("trxId").value.trim() || null;
+  const screenshot_url = el("shotUrl").value.trim() || null;
+
+  if(!trx_id && !screenshot_url){
+    return applyMsg("Give Transaction ID or Screenshot URL (at least one).", false);
+  }
+
+  const { error } = await supabase.from("applications").insert([{
+    user_id: currentUser.id,
+    course_id: selectedCourse.id,
+    payment_method,
+    trx_id,
+    screenshot_url,
+    status: "pending"
+  }]);
+
+  if(error) return applyMsg(error.message, false);
+
+  applyMsg("Submitted! Status: pending verification.", true);
+  await loadMyApplications();
+};
+
+/* ========= DATA LOADERS ========= */
+async function loadMyProfile(){
+  el("profileView").innerHTML = "<small>Loading…</small>";
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("name, phone, role")
+    .eq("id", currentUser.id)
+    .maybeSingle();
+
+  if(error) return el("profileView").innerHTML = `<p class="err">${error.message}</p>`;
+  if(!data) return el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
+
+  el("profileView").innerHTML = `
+    <p><b>Name:</b> ${escapeHtml(data.name||"")}</p>
+    <p><b>Phone:</b> ${escapeHtml(data.phone||"")}</p>
+    <p><b>Role:</b> ${escapeHtml(data.role||"student")}</p>
+  `;
+}
+
+async function loadCourses(){
+  el("coursesBox").innerHTML = "<small>Loading courses…</small>";
+  const { data, error } = await supabase
+    .from("courses")
+    .select("id, slug, title, price, description")
+    .order("id", { ascending: true });
+
+  if(error) return el("coursesBox").innerHTML = `<p class="err">${error.message}</p>`;
+  if(!data?.length) return el("coursesBox").innerHTML = `<p class="err">No courses found. Add courses in Supabase table: courses.</p>`;
+
+  el("coursesBox").innerHTML = data.map(c => `
+    <div class="card" style="margin-top:12px">
+      <div class="between">
+        <div>
+          <div class="tag">${escapeHtml((c.slug||"").toUpperCase())}</div>
+          <h3 style="margin:10px 0 6px 0">${escapeHtml(c.title||"")}</h3>
+          <small>${escapeHtml(c.description||"")}</small>
+        </div>
+        <div style="text-align:right;min-width:180px">
+          <div class="price">${escapeHtml(String(c.price))} BDT</div>
+          <div style="height:8px"></div>
+          <button class="btn primary" onclick='window.__openApply(${JSON.stringify(c)})'>Admit Now</button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  // bridge for onclick
+  window.__openApply = openApply;
+}
+
+async function loadMyApplications(){
+  el("appsBox").innerHTML = "<small>Loading…</small>";
+
+  const { data, error } = await supabase
+    .from("applications")
+    .select("id, status, created_at, payment_method, trx_id, screenshot_url, course_id")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  if(error) return el("appsBox").innerHTML = `<p class="err">${error.message}</p>`;
+  if(!data?.length) return el("appsBox").innerHTML = `<small>No applications yet.</small>`;
+
+  // Pull course titles for display
+  const { data: courses } = await supabase.from("courses").select("id,title");
+  const map = new Map((courses||[]).map(x => [x.id, x.title]));
+
+  el("appsBox").innerHTML = data.map(a => `
+    <div class="card" style="margin-top:12px">
+      <div class="between">
+        <div>
+          <b>${escapeHtml(map.get(a.course_id) || "Course")}</b><br>
+          <small>${new Date(a.created_at).toLocaleString()}</small>
+        </div>
+        <div>
+          <span class="tag">Status: ${escapeHtml(a.status||"pending")}</span>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <small>Method: ${escapeHtml(a.payment_method||"")}</small><br>
+      <small>Trx: ${escapeHtml(a.trx_id || "-")}</small><br>
+      <small>Screenshot URL: ${escapeHtml(a.screenshot_url || "-")}</small>
+    </div>
+  `).join("");
+}
+
+function escapeHtml(s){
+  return String(s || "").replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
 /* ========= SESSION ========= */
 supabase.auth.onAuthStateChange(async (_, session)=>{
-  if(session){
+  if(session?.user){
+    currentUser = session.user;
     el("authCard").classList.add("hidden");
     el("dashCard").classList.remove("hidden");
-    el("who").textContent = session.user.email;
+    el("who").textContent = `Logged in as ${session.user.email}`;
 
-    const { data } = await supabase
-      .from("profiles")
-      .select("name, phone, role")
-      .eq("id", session.user.id)
-      .single();
-
-    el("profileView").innerHTML = `
-      <p><b>Name:</b> ${data.name}</p>
-      <p><b>Phone:</b> ${data.phone}</p>
-      <p><b>Role:</b> ${data.role}</p>
-    `;
+    await loadMyProfile();
+    await loadCourses();
+    await loadMyApplications();
   }else{
-    el("authCard").classList.remove("hidden");
+    currentUser = null;
     el("dashCard").classList.add("hidden");
+    el("applyCard").classList.add("hidden");
+    el("authCard").classList.remove("hidden");
   }
 });
+
+// Initial load: if already logged in, it will trigger onAuthStateChange soon anyway
 </script>
 </body>
 </html>
