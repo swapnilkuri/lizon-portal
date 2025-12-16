@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LizOn Student Portal</title>
+  <meta name="theme-color" content="#0b2a1f" />
+
+  <link rel="manifest" href="/app.webmanifest">
+  <link rel="icon" href="data:,">
+
+  <style>
+    :root{
+      --bg:#06140f; --card:#0c2019; --line:#1d4a3a;
+      --text:#e9f3ef; --muted:#b7c9c2; --gold:#d7b24a;
+    }
+    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
+    .wrap{max-width:900px;margin:0 auto;padding:22px;}
+    .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
+    .btn{display:inline-block;padding:12px 14px;border-radius:12px;border:1px solid var(--line);text-decoration:none;color:var(--text);background:transparent}
+    .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    small{color:var(--muted)}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>LizOn Education — Student Portal</h1>
+    <small>PWA demo (Day 2): installable on mobile + PC.</small>
+
+    <div class="card">
+      <h2>What you can do (coming next)</h2>
+      <ul>
+        <li>Login / Signup</li>
+        <li>Choose course: ZERO / HOPE / STEP-UP / DESPERATE</li>
+        <li>Submit payment info</li>
+        <li>After approval: routine + class link + profile</li>
+      </ul>
+
+      <div class="row">
+        <a class="btn primary" href="#login">Go to Login (demo)</a>
+        <a class="btn" href="#install">How to install</a>
+      </div>
+    </div>
+
+    <div class="card" id="login">
+      <h2>Login (demo screen)</h2>
+      <p><small>Day 3 will make this real with Supabase login.</small></p>
+
+      <label>Email<br><input style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#071a14;color:var(--text)" placeholder="you@example.com"></label>
+      <br><br>
+      <label>Password<br><input type="password" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#071a14;color:var(--text)" placeholder="••••••••"></label>
+      <br><br>
+      <button class="btn primary" onclick="alert('Day 3 te real login hobe. Ajke just shell.');">Login</button>
+    </div>
+
+    <div class="card" id="install">
+      <h2>Install it like an app</h2>
+      <ul>
+        <li><b>Android:</b> Chrome → menu → “Add to Home screen”</li>
+        <li><b>iPhone:</b> Safari → Share → “Add to Home Screen”</li>
+        <li><b>Windows/Mac:</b> Chrome/Edge → Install icon in address bar</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Register service worker (PWA)
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(console.error);
+      });
+    }
+  </script>
+</body>
+</html>
