@@ -188,3 +188,121 @@
       supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       el("authStatus").textContent = "✅ keys loaded";
       el("authStatus").className = "ok";
+
+      // Render based on session
+      const { data: { session } } = await supabase.auth.getSession();
+      await renderSession(session);
+
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange(async (_event, session2) => {
+        await renderSession(session2);
+      });
+    }
+
+    async function renderSession(session){
+      if(session?.user){
+        el("authCard").classList.add("hidden");
+        el("dashCard").classList.remove("hidden");
+        el("who").textContent = `Logged in as ${session.user.email}`;
+        await loadMyProfile(session.user.id);
+      }else{
+        el("dashCard").classList.add("hidden");
+        el("authCard").classList.remove("hidden");
+      }
+    }
+
+    async function loadMyProfile(userId){
+      el("profileView").innerHTML = "<small>Loading profile…</small>";
+
+      // Get profile row
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, name, phone, university, role, created_at")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if(error){
+        el("profileView").innerHTML = `<p class="err">Profile load error: ${error.message}</p>`;
+        return;
+      }
+
+      if(!data){
+        // If profile row missing, show message (usually means Day 1 profile sync not set up)
+        el("profileView").innerHTML =
+          `<p class="err">No profile row found for this user. Day 1 table or insert step might be missing.</p>
+           <p><small>Fix: create a row in <code>profiles</code> where <code>id</code> = this user id.</small></p>`;
+        return;
+      }
+
+      el("profileView").innerHTML = `
+        <div class="card" style="margin-top:0">
+          <p><b>Name:</b> ${escapeHtml(data.name || "")}</p>
+          <p><b>Phone:</b> ${escapeHtml(data.phone || "")}</p>
+          <p><b>University:</b> ${escapeHtml(data.university || "")}</p>
+          <p><b>Role:</b> ${escapeHtml(data.role || "student")}</p>
+        </div>
+      `;
+    }
+
+    function escapeHtml(s){
+      return String(s || "").replace(/[&<>"']/g, (c) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[c]));
+    }
+
+    // LOGIN
+    el("btnLogin").onclick = async () => {
+      msg("Logging in...");
+      const email = el("loginEmail").value.trim();
+      const password = el("loginPass").value;
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if(error) return msg(error.message, false);
+      msg("");
+    };
+
+    // SIGNUP + create profile row
+    el("btnSignup").onclick = async () => {
+      msg("Creating account...");
+      const name = el("suName").value.trim();
+      const phone = el("suPhone").value.trim();
+      const university = el("suUni").value.trim();
+      const email = el("suEmail").value.trim();
+      const password = el("suPass").value;
+
+      if(!name || !phone || !university || !email || !password){
+        return msg("Fill all fields (name, phone, university, email, password).", false);
+      }
+
+      // 1) Create auth user
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if(error) return msg(error.message, false);
+
+      // If email confirmation is ON, session may be null until verified
+      const userId = data?.user?.id;
+
+      // 2) Create profiles row (best effort)
+      if(userId){
+        const { error: pErr } = await supabase.from("profiles").insert([{
+          id: userId, name, phone, university, role: "student"
+        }]);
+        // If RLS blocks this now, we’ll fix properly on Day 7 (security day).
+        if(pErr){
+          msg("Account created, but profile insert blocked. We’ll fix with RLS policy soon. For now admin can add profile row.", false);
+          return;
+        }
+      }
+
+      msg("Account created! Now login.", true);
+      tabLogin();
+    };
+
+    // LOGOUT
+    el("btnLogout").onclick = async () => {
+      await supabase.auth.signOut();
+    };
+
+    init();
+  </script>
+</body>
+</html>
