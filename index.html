@@ -192,12 +192,25 @@ el("tabSignup").onclick = ()=>{ el("signupBox").classList.remove("hidden"); el("
 /* ========= AUTH ========= */
 el("btnLogin").onclick = async ()=>{
   msg("Logging in…");
-  const email = el("loginEmail").value.trim();
-  const password = el("loginPass").value;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if(error) return msg(error.message,false);
-  msg("");
+  try{
+    const email = el("loginEmail").value.trim();
+    const password = el("loginPass").value;
+
+    // 10s safety timeout so it can’t hang forever
+    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet/Supabase keys.")), 10000));
+
+    const req = supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await Promise.race([req, timeout]);
+
+    if(error) return msg(error.message, false);
+    if(!data?.session) return msg("Login worked but no session returned. Check Supabase email confirmation setting.", false);
+
+    msg("");
+  }catch(e){
+    msg(e.message || "Login failed.", false);
+  }
 };
+
 
 el("btnSignup").onclick = async ()=>{
   msg("Creating account…");
