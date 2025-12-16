@@ -1,0 +1,15 @@
+{
+  "name": "LizOn Student Portal",
+  "short_name": "LizOn Portal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06140f",
+  "theme_color": "#0b2a1f",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
