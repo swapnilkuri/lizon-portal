@@ -159,14 +159,22 @@
   let me = null;
   let courses = [];
 
-  el("btnLogin").onclick = async ()=>{
-    msg("Logging in…");
+el("btnLogin").onclick = async ()=>{
+  msg("Logging in…");
+  try{
     const email = el("email").value.trim();
     const password = el("pass").value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if(error) return msg(error.message,false);
-    msg("");
-  };
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if(error) return msg("Login failed: " + error.message, false);
+    if(!data?.session) return msg("No session returned. Check email confirmation + keys.", false);
+
+    msg("Logged in.", true);
+  }catch(e){
+    msg("Login crash: " + (e.message || e), false);
+  }
+};
 
   el("btnLogout").onclick = ()=> supabase.auth.signOut();
 
