@@ -19,10 +19,10 @@
     .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     .between{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+    .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;display:inline-block}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
-    input, select{
+    input{
       width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
       background:#071a14;color:var(--text);
     }
@@ -35,16 +35,17 @@
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     @media (max-width:760px){ .grid{grid-template-columns:1fr} }
     .tag{display:inline-block;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted)}
-    .price{font-size:22px;font-weight:800}
+    .title{font-size:20px;font-weight:800;margin:10px 0 6px 0}
   </style>
 </head>
 
 <body>
 <div class="wrap">
-  <h1>LizOn Education — Student Portal</h1>
-  <small>Day 4 — Courses + Admit Now + Applications</small>
-
-  <div style="text-align:right;margin-top:10px">
+  <div class="between">
+    <div>
+      <h1 style="margin:0">LizOn Education — Student Portal</h1>
+      <small>Student Dashboard (WhatsApp purchase → Admin enrolls → access here)</small>
+    </div>
     <a class="btn" href="/admin.html">Admin Panel</a>
   </div>
 
@@ -91,7 +92,7 @@
         <button class="btn primary" id="btnSignup">Create Account</button>
       </div>
 
-      <p><small>If Supabase email confirmation is ON, verify email before login.</small></p>
+      <p><small>If email confirmation is ON, verify email before login.</small></p>
     </div>
 
     <p id="msg"></p>
@@ -118,66 +119,22 @@
       <div class="card" style="margin-top:0">
         <h3 style="margin-top:0">Help</h3>
         <p style="margin:0 0 8px 0"><small>
-          Existing students: signup/login and admin will enroll you (Day 5). New students: apply below.
+          Course purchase happens via WhatsApp. After payment, admin will enroll you and your courses will appear below.
         </small></p>
         <div class="row">
           <a
             class="btn"
             href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
-            target="_blank"
-            rel="noopener"
-          >
-            Talk with LizOn
-          </a>
+            target="_blank" rel="noopener"
+          >Talk with LizOn</a>
         </div>
       </div>
     </div>
 
     <div class="hr"></div>
 
-    <h3 style="margin:0 0 10px 0">Courses</h3>
-    <div id="coursesBox"><small>Loading courses…</small></div>
-
-    <div class="hr"></div>
-
-    <h3 style="margin:0 0 10px 0">My Applications</h3>
-    <div id="appsBox"><small>Loading applications…</small></div>
-  </div>
-
-  <!-- APPLY MODAL -->
-  <div class="card hidden" id="applyCard">
-    <div class="between">
-      <div>
-        <h2 style="margin:0">Admit Now</h2>
-        <small id="applyCourseName"></small>
-      </div>
-      <button class="btn" id="btnCloseApply">Close</button>
-    </div>
-
-    <div class="hr"></div>
-
-    <label>Payment Method
-      <select id="payMethod">
-        <option value="Bkash">Bkash</option>
-        <option value="Nagad">Nagad</option>
-        <option value="Rocket">Rocket</option>
-        <option value="Card">Card</option>
-      </select>
-    </label>
-
-    <label>Transaction ID (optional if you provide screenshot link)
-      <input id="trxId" placeholder="e.g., 9A7B6C5D...">
-    </label>
-
-    <label>Screenshot URL (optional)
-      <input id="shotUrl" placeholder="Paste a link (Google Drive/Imgur/etc.)">
-    </label>
-
-    <div class="row" style="margin-top:12px">
-      <button class="btn primary" id="btnSubmitApply">Submit</button>
-    </div>
-
-    <p id="applyMsg" style="margin-top:10px"></p>
+    <h3 style="margin:0 0 10px 0">My Courses</h3>
+    <div id="myCoursesBox"><small>Loading…</small></div>
   </div>
 </div>
 
@@ -186,17 +143,13 @@
 <script>
 /* ========= SUPABASE CONFIG ========= */
 const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG"; // <-- ensure this is FULL key
-
-// ✅ FIXED: must use window.supabase
+const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const el = id => document.getElementById(id);
 const msg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
-const applyMsg = (t, ok=true)=>{ el("applyMsg").textContent=t||""; el("applyMsg").className=ok?"ok":"err"; };
 
 let currentUser = null;
-let selectedCourse = null;
 
 /* ========= TABS ========= */
 el("tabLogin").onclick = ()=>{ el("loginBox").classList.remove("hidden"); el("signupBox").classList.add("hidden"); msg(""); };
@@ -209,12 +162,12 @@ el("btnLogin").onclick = async ()=>{
     const email = el("loginEmail").value.trim();
     const password = el("loginPass").value;
 
-    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet/Supabase keys.")), 10000));
+    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet/Supabase key.")), 10000));
     const req = supabase.auth.signInWithPassword({ email, password });
     const { data, error } = await Promise.race([req, timeout]);
 
     if(error) return msg(error.message, false);
-    if(!data?.session) return msg("Login worked but no session returned. Check Supabase email confirmation setting.", false);
+    if(!data?.session) return msg("Login worked but no session returned. Check email confirmation.", false);
     msg("");
   }catch(e){
     msg(e.message || "Login failed.", false);
@@ -236,12 +189,17 @@ el("btnSignup").onclick = async ()=>{
   if(error) return msg(error.message,false);
 
   if(data.user){
+    // store email in profile so Admin can search
     const { error: pErr } = await supabase.from("profiles").insert([{
-      id: data.user.id, name, phone, role: "student"
+      id: data.user.id,
+      name,
+      phone,
+      email,
+      role: "student"
     }]);
 
     if(pErr){
-      msg("Account created, but profile insert blocked (security). Try login; if profile missing, admin can add once.", false);
+      msg("Account created, but profile insert blocked. Please login; admin can create profile row once.", false);
     } else {
       msg("Account created. Now login.", true);
       el("tabLogin").click();
@@ -253,72 +211,12 @@ el("btnSignup").onclick = async ()=>{
 
 el("btnLogout").onclick = ()=> supabase.auth.signOut();
 
-/* ========= APPLY UI ========= */
-el("btnCloseApply").onclick = ()=>{
-  el("applyCard").classList.add("hidden");
-  applyMsg("");
-  selectedCourse = null;
-};
-
-function openApply(course){
-  selectedCourse = course;
-  el("applyCourseName").textContent = `${course.title} — Price: ${course.price}`;
-  el("payMethod").value = "Bkash";
-  el("trxId").value = "";
-  el("shotUrl").value = "";
-  applyMsg("");
-  el("applyCard").classList.remove("hidden");
-  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-}
-
-/* ✅ FIXED SUBMIT HANDLER (NO MORE STUCK “Submitting…”) */
-el("btnSubmitApply").onclick = async ()=>{
-  applyMsg("Submitting…");
-  if(!currentUser || !selectedCourse) return applyMsg("Session missing. Please login again.", false);
-
-  try{
-    const payment_method = el("payMethod").value;
-    const trx_id = el("trxId").value.trim() || null;
-    const screenshot_url = el("shotUrl").value.trim() || null;
-
-    if(!trx_id && !screenshot_url){
-      return applyMsg("Give Transaction ID or Screenshot URL (at least one).", false);
-    }
-
-    const payload = {
-      user_id: currentUser.id,
-      course_id: selectedCourse.id,
-      payment_method,
-      trx_id,
-      screenshot_url,
-      status: "pending"
-    };
-
-    // 10s timeout so it can’t hang forever
-    const timeout = new Promise((_, rej) =>
-      setTimeout(()=>rej(new Error("Submit timeout. Check RLS on applications table.")), 10000)
-    );
-
-    const req = supabase.from("applications").insert([payload]);
-    const { error } = await Promise.race([req, timeout]);
-
-    if(error) return applyMsg("Submit failed: " + error.message, false);
-
-    applyMsg("Submitted! Status: pending verification.", true);
-    await loadMyApplications();
-    setTimeout(()=>el("btnCloseApply").click(), 700);
-
-  }catch(e){
-    applyMsg("Submit error: " + (e.message || e), false);
-  }
-};
-
-/* ========= DATA LOADERS ========= */
+/* ========= DATA ========= */
 async function loadMyProfile(){
   el("profileView").innerHTML = "<small>Loading…</small>";
   const { data, error } = await supabase
     .from("profiles")
-    .select("name, phone, role")
+    .select("name, phone, role, email")
     .eq("id", currentUser.id)
     .maybeSingle();
 
@@ -328,70 +226,61 @@ async function loadMyProfile(){
   el("profileView").innerHTML = `
     <p><b>Name:</b> ${escapeHtml(data.name||"")}</p>
     <p><b>Phone:</b> ${escapeHtml(data.phone||"")}</p>
+    <p><b>Email:</b> ${escapeHtml(data.email||"")}</p>
     <p><b>Role:</b> ${escapeHtml(data.role||"student")}</p>
   `;
 }
 
-async function loadCourses(){
-  el("coursesBox").innerHTML = "<small>Loading courses…</small>";
-  const { data, error } = await supabase
+async function loadMyCourses(){
+  el("myCoursesBox").innerHTML = "<small>Loading…</small>";
+
+  // get enrollments for this user
+  const { data: enrolls, error: eErr } = await supabase
+    .from("enrollments")
+    .select("course_id, status, created_at")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  if(eErr) return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(eErr.message)}</p>`;
+  if(!enrolls?.length) return el("myCoursesBox").innerHTML = `<small>No enrolled courses yet. After WhatsApp purchase, admin will add your course.</small>`;
+
+  const ids = enrolls.map(x => x.course_id);
+
+  // fetch course details + links
+  const { data: courses, error: cErr } = await supabase
     .from("courses")
-    .select("id, slug, title, price, description")
-    .order("id", { ascending: true });
+    .select("id, slug, title, description, join_link, record_link")
+    .in("id", ids);
 
-  if(error) return el("coursesBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
-  if(!data?.length) return el("coursesBox").innerHTML = `<p class="err">No courses found. Add courses in Supabase table: courses.</p>`;
+  if(cErr) return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(cErr.message)}</p>`;
 
-  el("coursesBox").innerHTML = data.map(c => `
+  const map = new Map((courses||[]).map(c => [c.id, c]));
+  const rows = enrolls
+    .map(en => ({ en, c: map.get(en.course_id) }))
+    .filter(x => x.c);
+
+  el("myCoursesBox").innerHTML = rows.map(({en, c}) => `
     <div class="card" style="margin-top:12px">
       <div class="between">
         <div>
           <div class="tag">${escapeHtml((c.slug||"").toUpperCase())}</div>
-          <h3 style="margin:10px 0 6px 0">${escapeHtml(c.title||"")}</h3>
-          <small>${escapeHtml(c.description||"")}</small>
+          <div class="title">${escapeHtml(c.title||"")}</div>
+          <small>${escapeHtml(c.description||"")}</small><br>
+          <small>Status: <b>${escapeHtml(en.status || "active")}</b></small>
         </div>
-        <div style="text-align:right;min-width:180px">
-          <div class="price">${escapeHtml(String(c.price))} BDT</div>
-          <div style="height:8px"></div>
-          <button class="btn primary" onclick='window.__openApply(${JSON.stringify(c)})'>Admit Now</button>
-        </div>
-      </div>
-    </div>
-  `).join("");
-
-  window.__openApply = openApply;
-}
-
-async function loadMyApplications(){
-  el("appsBox").innerHTML = "<small>Loading…</small>";
-
-  const { data, error } = await supabase
-    .from("applications")
-    .select("id, status, created_at, payment_method, trx_id, screenshot_url, course_id")
-    .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false });
-
-  if(error) return el("appsBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
-  if(!data?.length) return el("appsBox").innerHTML = `<small>No applications yet.</small>`;
-
-  const { data: courses } = await supabase.from("courses").select("id,title");
-  const map = new Map((courses||[]).map(x => [x.id, x.title]));
-
-  el("appsBox").innerHTML = data.map(a => `
-    <div class="card" style="margin-top:12px">
-      <div class="between">
-        <div>
-          <b>${escapeHtml(map.get(a.course_id) || "Course")}</b><br>
-          <small>${new Date(a.created_at).toLocaleString()}</small>
-        </div>
-        <div>
-          <span class="tag">Status: ${escapeHtml(a.status||"pending")}</span>
+        <div style="text-align:right;min-width:220px">
+          <a class="btn primary" target="_blank" rel="noopener"
+             href="${escapeAttr(c.join_link || '#')}">
+             Join the Class
+          </a>
+          <div style="height:10px"></div>
+          <a class="btn" target="_blank" rel="noopener"
+             href="${escapeAttr(c.record_link || '#')}">
+             Class Record
+          </a>
         </div>
       </div>
-      <div class="hr"></div>
-      <small>Method: ${escapeHtml(a.payment_method||"")}</small><br>
-      <small>Trx: ${escapeHtml(a.trx_id || "-")}</small><br>
-      <small>Screenshot URL: ${escapeHtml(a.screenshot_url || "-")}</small>
+      ${(c.join_link || c.record_link) ? "" : `<p class="err" style="margin-top:12px">Admin has not added links for this course yet.</p>`}
     </div>
   `).join("");
 }
@@ -400,6 +289,10 @@ function escapeHtml(s){
   return String(s || "").replace(/[&<>"']/g, (c) => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
+}
+function escapeAttr(s){
+  // basic safe attr escaping
+  return String(s || "").replace(/"/g, "&quot;");
 }
 
 /* ========= SESSION ========= */
@@ -411,12 +304,10 @@ supabase.auth.onAuthStateChange(async (_, session)=>{
     el("who").textContent = `Logged in as ${session.user.email}`;
 
     await loadMyProfile();
-    await loadCourses();
-    await loadMyApplications();
+    await loadMyCourses();
   }else{
     currentUser = null;
     el("dashCard").classList.add("hidden");
-    el("applyCard").classList.add("hidden");
     el("authCard").classList.remove("hidden");
   }
 });
