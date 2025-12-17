@@ -1,312 +1,146 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LizOn Student Portal</title>
-  <meta name="theme-color" content="#0b2a1f" />
-  <link rel="manifest" href="/app.webmanifest">
-  <link rel="icon" href="data:,">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LizOn Education — Student Portal</title>
+<meta name="theme-color" content="#0b2a1f">
 
-  <style>
-    :root{
-      --bg:#06140f; --card:#0c2019; --line:#1d4a3a;
-      --text:#e9f3ef; --muted:#b7c9c2; --gold:#d7b24a;
-      --danger:#ff6b6b; --ok:#7CFFB2;
-    }
-    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
-    .wrap{max-width:980px;margin:0 auto;padding:22px;}
-    .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .between{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;display:inline-block}
-    .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
-    .btn.danger{border-color:rgba(255,107,107,.6)}
-    input{
-      width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
-      background:#071a14;color:var(--text);
-    }
-    label{display:block;margin-top:10px}
-    small{color:var(--muted)}
-    .hidden{display:none}
-    .hr{height:1px;background:var(--line);margin:14px 0}
-    .ok{color:var(--ok)}
-    .err{color:var(--danger)}
-    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    @media (max-width:760px){ .grid{grid-template-columns:1fr} }
-    .tag{display:inline-block;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted)}
-    .title{font-size:20px;font-weight:800;margin:10px 0 6px 0}
-  </style>
+<style>
+:root{
+  --bg:#06140f;--card:#0c2019;--line:#1d4a3a;
+  --text:#e9f3ef;--muted:#b7c9c2;--gold:#d7b24a;
+  --danger:#ff6b6b;--ok:#7CFFB2;
+}
+body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
+.wrap{max-width:980px;margin:auto;padding:22px}
+.card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.between{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.btn{padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+.btn.primary{border-color:rgba(215,178,74,.7)}
+.btn.danger{border-color:rgba(255,107,107,.7)}
+input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#071a14;color:var(--text)}
+.hidden{display:none}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.ok{color:var(--ok)} .err{color:var(--danger)}
+.price{font-size:20px;font-weight:700}
+</style>
 </head>
 
 <body>
 <div class="wrap">
-  <div class="between">
-    <div>
-      <h1 style="margin:0">LizOn Education — Student Portal</h1>
-      <small>Student Dashboard (WhatsApp purchase → Admin enrolls → access here)</small>
-    </div>
-    <a class="btn" href="/admin.html">Admin Panel</a>
-  </div>
+<h1>LizOn Education — Student Portal</h1>
+<small>Student Dashboard (WhatsApp purchase → Admin enrolls → Access here)</small>
 
-  <!-- AUTH -->
-  <div class="card" id="authCard">
-    <h2>Login / Signup</h2>
-
-    <div class="row">
-      <button class="btn primary" id="tabLogin">Login</button>
-      <button class="btn" id="tabSignup">Signup</button>
-    </div>
-
-    <div class="hr"></div>
-
-    <!-- LOGIN -->
-    <div id="loginBox">
-      <label>Email
-        <input id="loginEmail" type="email" placeholder="you@example.com">
-      </label>
-      <label>Password
-        <input id="loginPass" type="password" placeholder="••••••••">
-      </label>
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="btnLogin">Login</button>
-      </div>
-    </div>
-
-    <!-- SIGNUP -->
-    <div id="signupBox" class="hidden">
-      <label>Full Name
-        <input id="suName" placeholder="Your full name">
-      </label>
-      <label>Phone
-        <input id="suPhone" placeholder="01XXXXXXXXX">
-      </label>
-      <label>Email
-        <input id="suEmail" type="email" placeholder="you@example.com">
-      </label>
-      <label>Password
-        <input id="suPass" type="password" placeholder="Create a password">
-      </label>
-
-      <div class="row" style="margin-top:12px">
-        <button class="btn primary" id="btnSignup">Create Account</button>
-      </div>
-
-      <p><small>If email confirmation is ON, verify email before login.</small></p>
-    </div>
-
-    <p id="msg"></p>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div class="card hidden" id="dashCard">
-    <div class="between">
-      <div>
-        <h2 style="margin:0">Dashboard</h2>
-        <small id="who"></small>
-      </div>
-      <button class="btn danger" id="btnLogout">Logout</button>
-    </div>
-
-    <div class="hr"></div>
-
-    <div class="grid">
-      <div class="card" style="margin-top:0">
-        <h3 style="margin-top:0">Your Profile</h3>
-        <div id="profileView"><small>Loading…</small></div>
-      </div>
-
-      <div class="card" style="margin-top:0">
-        <h3 style="margin-top:0">Help</h3>
-        <p style="margin:0 0 8px 0"><small>
-          Course purchase happens via WhatsApp. After payment, admin will enroll you and your courses will appear below.
-        </small></p>
-        <div class="row">
-          <a
-            class="btn"
-            href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
-            target="_blank" rel="noopener"
-          >Talk with LizOn</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="hr"></div>
-
-    <h3 style="margin:0 0 10px 0">My Courses</h3>
-    <div id="myCoursesBox"><small>Loading…</small></div>
-  </div>
+<div style="text-align:right;margin-top:10px">
+  <a class="btn" href="/admin.html">Admin Panel</a>
 </div>
 
+<!-- AUTH -->
+<div class="card" id="authCard">
+<h2>Login / Signup</h2>
+
+<label>Email</label>
+<input id="email">
+
+<label>Password</label>
+<input id="password" type="password">
+
+<div class="row" style="margin-top:12px">
+  <button class="btn primary" id="btnLogin">Login</button>
+  <button class="btn" id="btnSignup">Signup</button>
+</div>
+
+<p id="msg"></p>
+</div>
+
+<!-- DASHBOARD -->
+<div class="card hidden" id="dashCard">
+<div class="between">
+  <div>
+    <h2 style="margin:0">My Courses</h2>
+    <small id="who"></small>
+  </div>
+  <button class="btn danger" id="btnLogout">Logout</button>
+</div>
+
+<div class="hr"></div>
+<div id="coursesBox"><small>Loading…</small></div>
+</div>
+</div>
+
+<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-/* ========= SUPABASE CONFIG ========= */
+/* ===== SUPABASE CONFIG ===== */
 const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";  // 👈 replace only this
 
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+/* ===== HELPERS ===== */
 const el = id => document.getElementById(id);
-const msg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
+const msg = (t,ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
 
-let currentUser = null;
+let currentUser=null;
 
-/* ========= TABS ========= */
-el("tabLogin").onclick = ()=>{ el("loginBox").classList.remove("hidden"); el("signupBox").classList.add("hidden"); msg(""); };
-el("tabSignup").onclick = ()=>{ el("signupBox").classList.remove("hidden"); el("loginBox").classList.add("hidden"); msg(""); };
-
-/* ========= AUTH ========= */
+/* ===== AUTH ===== */
 el("btnLogin").onclick = async ()=>{
   msg("Logging in…");
-  try{
-    const email = el("loginEmail").value.trim();
-    const password = el("loginPass").value;
-
-    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet/Supabase key.")), 10000));
-    const req = supabase.auth.signInWithPassword({ email, password });
-    const { data, error } = await Promise.race([req, timeout]);
-
-    if(error) return msg(error.message, false);
-    if(!data?.session) return msg("Login worked but no session returned. Check email confirmation.", false);
-    msg("");
-  }catch(e){
-    msg(e.message || "Login failed.", false);
-  }
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: el("email").value.trim(),
+    password: el("password").value
+  });
+  if(error) return msg(error.message,false);
 };
 
 el("btnSignup").onclick = async ()=>{
   msg("Creating account…");
-  const name = el("suName").value.trim();
-  const phone = el("suPhone").value.trim();
-  const email = el("suEmail").value.trim();
-  const password = el("suPass").value;
-
-  if(!name || !phone || !email || !password){
-    return msg("All fields are required.",false);
-  }
-
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabase.auth.signUp({
+    email: el("email").value.trim(),
+    password: el("password").value
+  });
   if(error) return msg(error.message,false);
-
-  if(data.user){
-    // store email in profile so Admin can search
-    const { error: pErr } = await supabase.from("profiles").insert([{
-      id: data.user.id,
-      name,
-      phone,
-      email,
-      role: "student"
-    }]);
-
-    if(pErr){
-      msg("Account created, but profile insert blocked. Please login; admin can create profile row once.", false);
-    } else {
-      msg("Account created. Now login.", true);
-      el("tabLogin").click();
-    }
-  } else {
-    msg("Account created. Verify email if required, then login.", true);
-  }
+  msg("Account created. Now login.");
 };
 
-el("btnLogout").onclick = ()=> supabase.auth.signOut();
+el("btnLogout").onclick = ()=>supabase.auth.signOut();
 
-/* ========= DATA ========= */
-async function loadMyProfile(){
-  el("profileView").innerHTML = "<small>Loading…</small>";
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("name, phone, role, email")
-    .eq("id", currentUser.id)
-    .maybeSingle();
-
-  if(error) return el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
-  if(!data) return el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
-
-  el("profileView").innerHTML = `
-    <p><b>Name:</b> ${escapeHtml(data.name||"")}</p>
-    <p><b>Phone:</b> ${escapeHtml(data.phone||"")}</p>
-    <p><b>Email:</b> ${escapeHtml(data.email||"")}</p>
-    <p><b>Role:</b> ${escapeHtml(data.role||"student")}</p>
-  `;
-}
-
+/* ===== LOAD COURSES ===== */
 async function loadMyCourses(){
-  el("myCoursesBox").innerHTML = "<small>Loading…</small>";
-
-  // get enrollments for this user
-  const { data: enrolls, error: eErr } = await supabase
+  const { data, error } = await supabase
     .from("enrollments")
-    .select("course_id, status, created_at")
-    .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false });
+    .select("courses(title,join_link,record_link)")
+    .eq("user_id", currentUser.id);
 
-  if(eErr) return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(eErr.message)}</p>`;
-  if(!enrolls?.length) return el("myCoursesBox").innerHTML = `<small>No enrolled courses yet. After WhatsApp purchase, admin will add your course.</small>`;
+  if(error) return el("coursesBox").innerHTML=`<p class="err">${error.message}</p>`;
+  if(!data.length) return el("coursesBox").innerHTML="<small>No courses assigned yet.</small>";
 
-  const ids = enrolls.map(x => x.course_id);
-
-  // fetch course details + links
-  const { data: courses, error: cErr } = await supabase
-    .from("courses")
-    .select("id, slug, title, description, join_link, record_link")
-    .in("id", ids);
-
-  if(cErr) return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(cErr.message)}</p>`;
-
-  const map = new Map((courses||[]).map(c => [c.id, c]));
-  const rows = enrolls
-    .map(en => ({ en, c: map.get(en.course_id) }))
-    .filter(x => x.c);
-
-  el("myCoursesBox").innerHTML = rows.map(({en, c}) => `
-    <div class="card" style="margin-top:12px">
-      <div class="between">
-        <div>
-          <div class="tag">${escapeHtml((c.slug||"").toUpperCase())}</div>
-          <div class="title">${escapeHtml(c.title||"")}</div>
-          <small>${escapeHtml(c.description||"")}</small><br>
-          <small>Status: <b>${escapeHtml(en.status || "active")}</b></small>
-        </div>
-        <div style="text-align:right;min-width:220px">
-          <a class="btn primary" target="_blank" rel="noopener"
-             href="${escapeAttr(c.join_link || '#')}">
-             Join the Class
-          </a>
-          <div style="height:10px"></div>
-          <a class="btn" target="_blank" rel="noopener"
-             href="${escapeAttr(c.record_link || '#')}">
-             Class Record
-          </a>
-        </div>
+  el("coursesBox").innerHTML = data.map(r=>`
+    <div class="card">
+      <h3>${r.courses.title}</h3>
+      <div class="row">
+        <a class="btn primary" target="_blank" href="${r.courses.join_link}">Join the Class</a>
+        <a class="btn" target="_blank" href="${r.courses.record_link}">Class Record</a>
       </div>
-      ${(c.join_link || c.record_link) ? "" : `<p class="err" style="margin-top:12px">Admin has not added links for this course yet.</p>`}
     </div>
   `).join("");
 }
 
-function escapeHtml(s){
-  return String(s || "").replace(/[&<>"']/g, (c) => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
-}
-function escapeAttr(s){
-  // basic safe attr escaping
-  return String(s || "").replace(/"/g, "&quot;");
-}
-
-/* ========= SESSION ========= */
-supabase.auth.onAuthStateChange(async (_, session)=>{
+/* ===== SESSION ===== */
+supabase.auth.onAuthStateChange(async (_,session)=>{
   if(session?.user){
-    currentUser = session.user;
+    currentUser=session.user;
     el("authCard").classList.add("hidden");
     el("dashCard").classList.remove("hidden");
-    el("who").textContent = `Logged in as ${session.user.email}`;
-
-    await loadMyProfile();
-    await loadMyCourses();
+    el("who").textContent=`Logged in as ${session.user.email}`;
+    loadMyCourses();
   }else{
-    currentUser = null;
+    currentUser=null;
     el("dashCard").classList.add("hidden");
     el("authCard").classList.remove("hidden");
   }
