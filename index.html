@@ -19,7 +19,7 @@
     .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     .between{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+    .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
     input, select{
@@ -34,7 +34,8 @@
     .err{color:var(--danger)}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     @media (max-width:760px){ .grid{grid-template-columns:1fr} }
-    .tag{display:inline-block;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted)}
+    .tag{display:inline-block;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
+    .title{font-size:34px;margin:0}
   </style>
 </head>
 
@@ -42,7 +43,7 @@
 <div class="wrap">
   <div class="between">
     <div>
-      <h1 style="margin:0">LizOn Education — Student Portal</h1>
+      <h1 class="title">LizOn Education — Student Portal</h1>
       <small>Student Dashboard (WhatsApp purchase → Admin enrolls → Access here)</small>
     </div>
     <a class="btn" href="/admin.html">Admin Panel</a>
@@ -50,7 +51,7 @@
 
   <!-- AUTH -->
   <div class="card" id="authCard">
-    <h2>Login / Signup</h2>
+    <h2 style="margin-top:0">Login / Signup</h2>
 
     <div class="row">
       <button class="btn primary" id="tabLogin" type="button">Login</button>
@@ -70,10 +71,10 @@
       <div class="row" style="margin-top:12px">
         <button class="btn primary" id="btnLogin" type="button">Login</button>
       </div>
-      <p style="margin-top:10px"><small>Note: If email confirmation is ON in Supabase, confirm email first, then login.</small></p>
+      <p><small>Note: If email confirmation is ON in Supabase, confirm email first, then login.</small></p>
     </div>
 
-    <!-- SIGNUP (Option 2) -->
+    <!-- SIGNUP -->
     <div id="signupBox" class="hidden">
       <label>Full Name
         <input id="suName" placeholder="Your full name" autocomplete="name">
@@ -87,12 +88,10 @@
       <label>Password
         <input id="suPass" type="password" placeholder="Create a password" autocomplete="new-password">
       </label>
-
       <div class="row" style="margin-top:12px">
         <button class="btn primary" id="btnSignup" type="button">Create Account</button>
       </div>
-
-      <p style="margin-top:10px"><small>If Supabase email confirmation is ON, verify email before login.</small></p>
+      <p><small>If Supabase email confirmation is ON, verify email before login.</small></p>
     </div>
 
     <p id="msg" style="margin-top:10px"></p>
@@ -124,7 +123,9 @@
         <div class="row">
           <a class="btn"
              href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
-             target="_blank" rel="noopener">Talk with LizOn</a>
+             target="_blank" rel="noopener">
+            Talk with LizOn
+          </a>
         </div>
       </div>
     </div>
@@ -136,118 +137,117 @@
   </div>
 </div>
 
-<!-- Supabase JS (ONLY ONCE) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-/* ========= SUPABASE CONFIG ========= */
+/* ========= SUPABASE CONFIG (REPLACE ONLY THESE 2 LINES) ========= */
 const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
+/* =============================================================== */
 
-/* Safety: if you forgot to paste */
-if(!SUPABASE_URL.includes("supabase.co") || SUPABASE_ANON_KEY.includes("PASTE_")){
-  console.warn("Supabase keys not set. Paste SUPABASE_URL + SUPABASE_ANON_KEY.");
-}
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/* ========= HELPERS ========= */
 const el = id => document.getElementById(id);
-const setMsg = (t, ok=true)=>{
-  el("msg").textContent = t || "";
-  el("msg").className = ok ? "ok" : "err";
-};
+const setMsg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
 
 let currentUser = null;
 
 /* ========= TABS ========= */
-el("tabLogin").onclick = ()=>{
+function showLogin(){
   el("loginBox").classList.remove("hidden");
   el("signupBox").classList.add("hidden");
   el("tabLogin").classList.add("primary");
+  el("tabSignup").classList.remove("primary");
   setMsg("");
-};
-el("tabSignup").onclick = ()=>{
+}
+function showSignup(){
   el("signupBox").classList.remove("hidden");
   el("loginBox").classList.add("hidden");
+  el("tabSignup").classList.add("primary");
+  el("tabLogin").classList.remove("primary");
   setMsg("");
-};
+}
+
+el("tabLogin").addEventListener("click", showLogin);
+el("tabSignup").addEventListener("click", showSignup);
 
 /* ========= AUTH ========= */
-el("btnLogin").onclick = async ()=>{
-  const email = el("loginEmail").value.trim();
-  const password = el("loginPass").value;
-
-  if(!email || !password) return setMsg("Email + password required.", false);
-
+el("btnLogin").addEventListener("click", async ()=>{
   setMsg("Logging in…");
   try{
-    const timeout = new Promise((_, rej)=>setTimeout(()=>rej(new Error("Login timeout. Check internet / Supabase keys.")), 12000));
-    const req = supa.auth.signInWithPassword({ email, password });
+    const email = el("loginEmail").value.trim();
+    const password = el("loginPass").value;
+
+    if(!email || !password) return setMsg("Email + password required.", false);
+
+    // 12s timeout so it can’t hang forever
+    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet / Supabase keys.")), 12000));
+    const req = supabaseClient.auth.signInWithPassword({ email, password });
+
     const { data, error } = await Promise.race([req, timeout]);
 
     if(error) return setMsg(error.message, false);
-    if(!data?.session) return setMsg("Login ok, but no session returned. If email confirmation is ON, verify first.", false);
+    if(!data?.session) return setMsg("Login OK but no session. Check Supabase email confirmation setting.", false);
 
     setMsg("");
   }catch(e){
     setMsg(e.message || "Login failed.", false);
   }
-};
+});
 
-el("btnSignup").onclick = async ()=>{
-  const name = el("suName").value.trim();
-  const phone = el("suPhone").value.trim();
-  const email = el("suEmail").value.trim();
-  const password = el("suPass").value;
-
-  if(!name || !phone || !email || !password) return setMsg("Name + phone + email + password required.", false);
-
+el("btnSignup").addEventListener("click", async ()=>{
   setMsg("Creating account…");
   try{
-    const { data, error } = await supa.auth.signUp({ email, password });
+    const name = el("suName").value.trim();
+    const phone = el("suPhone").value.trim();
+    const email = el("suEmail").value.trim();
+    const password = el("suPass").value;
+
+    if(!name || !phone || !email || !password){
+      return setMsg("All fields are required.", false);
+    }
+
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if(error) return setMsg(error.message, false);
 
-    // If Supabase returns user immediately, try creating profile now.
-    // (If email confirmation is ON, sometimes user is null until confirmed.)
-    const userId = data?.user?.id || data?.session?.user?.id || null;
-
-    if(userId){
-      const { error: pErr } = await supa.from("profiles").insert([{
-        id: userId,
+    // Try to create profile row (if RLS blocks, admin can insert manually)
+    if(data?.user){
+      const { error: pErr } = await supabaseClient.from("profiles").insert([{
+        id: data.user.id,
         name,
         phone,
         role: "student"
       }]);
-
       if(pErr){
-        // Not fatal. Often this is RLS. Admin can insert once.
-        return setMsg("Account created ✅ but profile insert blocked by security. Admin can add profile row once, then you can login.", false);
+        setMsg("Account created. Profile insert blocked by security. Admin can add profile once. Now login.", false);
+      } else {
+        setMsg("Account created. Now login.", true);
       }
-
-      setMsg("Account created ✅ Now login.", true);
-      el("tabLogin").click();
-    }else{
-      setMsg("Account created ✅ Please check your email and confirm, then login. (Profile row may be added after first login/admin)", true);
-      el("tabLogin").click();
+    } else {
+      setMsg("Account created. Verify email if required, then login.", true);
     }
+
+    showLogin();
   }catch(e){
     setMsg(e.message || "Signup failed.", false);
   }
-};
+});
 
-el("btnLogout").onclick = ()=> supa.auth.signOut();
+el("btnLogout").addEventListener("click", async ()=>{
+  await supabaseClient.auth.signOut();
+});
 
-/* ========= DATA ========= */
+/* ========= LOADERS ========= */
 function escapeHtml(s){
-  return String(s || "").replace(/[&<>"']/g, (c)=>({
+  return String(s || "").replace(/[&<>"']/g, (c) => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
 }
 
 async function loadMyProfile(){
   el("profileView").innerHTML = "<small>Loading…</small>";
-  const { data, error } = await supa
+
+  const { data, error } = await supabaseClient
     .from("profiles")
     .select("name, phone, role")
     .eq("id", currentUser.id)
@@ -266,47 +266,58 @@ async function loadMyProfile(){
 async function loadMyCourses(){
   el("myCoursesBox").innerHTML = "<small>Loading…</small>";
 
-  // enrollments should contain: user_id, course_id, join_link, record_link, status (active)
-  const { data, error } = await supa
+  // We expect these columns in enrollments:
+  // user_id (uuid), course_id (int8), status (text), join_link (text), record_link (text)
+  // and courses: id, slug, title, description
+  const { data, error } = await supabaseClient
     .from("enrollments")
-    .select("course_id, join_link, record_link, status")
-    .eq("user_id", currentUser.id)
-    .order("course_id", { ascending: true });
+    .select(`
+      course_id,
+      status,
+      join_link,
+      record_link,
+      courses:course_id ( id, slug, title, description )
+    `)
+    .eq("user_id", currentUser.id);
 
-  if(error) return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+  if(error){
+    return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+  }
+
   if(!data?.length){
     return el("myCoursesBox").innerHTML = `
-      <div class="card" style="margin-top:0">
+      <div class="card" style="margin-top:12px">
         <p class="err" style="margin:0"><b>No courses assigned yet</b></p>
         <small>After payment, admin will enroll you and courses will appear here.</small>
       </div>
     `;
   }
 
-  // Get course titles
-  const { data: courses } = await supa.from("courses").select("id,title,slug").order("id",{ascending:true});
-  const map = new Map((courses||[]).map(c => [c.id, c]));
+  el("myCoursesBox").innerHTML = data.map(e => {
+    const c = e.courses || {};
+    const slug = (c.slug || "COURSE").toUpperCase();
+    const title = c.title || "Course";
+    const desc = c.description || "";
+    const status = e.status || "active";
+    const join = e.join_link || "";
+    const rec = e.record_link || "";
 
-  el("myCoursesBox").innerHTML = data.map(en => {
-    const c = map.get(en.course_id);
-    const title = c?.title || ("Course ID " + en.course_id);
-    const slug = (c?.slug || "").toUpperCase();
+    const joinBtn = join
+      ? `<a class="btn primary" href="${escapeHtml(join)}" target="_blank" rel="noopener">Join the Class</a>`
+      : `<span class="tag">Join link missing</span>`;
 
-    const joinBtn = en.join_link
-      ? `<a class="btn primary" href="${escapeHtml(en.join_link)}" target="_blank" rel="noopener">Join the Class</a>`
-      : `<button class="btn" type="button" disabled style="opacity:.5;cursor:not-allowed">Join the Class</button>`;
-
-    const recBtn = en.record_link
-      ? `<a class="btn" href="${escapeHtml(en.record_link)}" target="_blank" rel="noopener">Class Record</a>`
-      : `<button class="btn" type="button" disabled style="opacity:.5;cursor:not-allowed">Class Record</button>`;
+    const recBtn = rec
+      ? `<a class="btn" href="${escapeHtml(rec)}" target="_blank" rel="noopener">Class Record</a>`
+      : `<span class="tag">Record link missing</span>`;
 
     return `
       <div class="card" style="margin-top:12px">
         <div class="between">
           <div>
-            ${slug ? `<div class="tag">${escapeHtml(slug)}</div>` : ``}
+            <div class="tag">${escapeHtml(slug)}</div>
             <h3 style="margin:10px 0 6px 0">${escapeHtml(title)}</h3>
-            <small>Status: ${escapeHtml(en.status || "active")}</small>
+            <small>${escapeHtml(desc)}</small><br>
+            <small>Status: ${escapeHtml(status)}</small>
           </div>
           <div class="row">
             ${joinBtn}
@@ -319,9 +330,10 @@ async function loadMyCourses(){
 }
 
 /* ========= SESSION ========= */
-supa.auth.onAuthStateChange(async (_, session)=>{
+supabaseClient.auth.onAuthStateChange(async (_, session)=>{
   if(session?.user){
     currentUser = session.user;
+
     el("authCard").classList.add("hidden");
     el("dashCard").classList.remove("hidden");
     el("who").textContent = `Logged in as ${session.user.email}`;
@@ -332,10 +344,19 @@ supa.auth.onAuthStateChange(async (_, session)=>{
     currentUser = null;
     el("dashCard").classList.add("hidden");
     el("authCard").classList.remove("hidden");
+    showLogin();
   }
 });
 
-// On load: if session exists, Supabase will trigger onAuthStateChange automatically.
+/* ========= IMPORTANT FIX: Back button / return from links ========= */
+// If user goes to Join/Record then comes back, browser may restore a frozen page.
+// This forces a clean reload so logout + loading always works.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) window.location.reload();
+});
+
+// Default view
+showLogin();
 </script>
 </body>
 </html>
