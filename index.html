@@ -22,8 +22,7 @@
     .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
-    .btn.small{padding:10px 12px;border-radius:10px;font-size:14px}
-    input{
+    input, select{
       width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
       background:#071a14;color:var(--text);
     }
@@ -53,20 +52,50 @@
   <div class="card" id="authCard">
     <h2>Login / Signup</h2>
 
-    <label>Email
-      <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
-    </label>
-    <label>Password
-      <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password">
-    </label>
-
-    <div class="row" style="margin-top:12px">
-      <button class="btn primary" id="btnLogin" type="button">Login</button>
-      <button class="btn" id="btnSignup" type="button">Signup</button>
+    <div class="row">
+      <button class="btn primary" id="tabLogin" type="button">Login</button>
+      <button class="btn" id="tabSignup" type="button">Signup</button>
     </div>
 
-    <p><small>Note: If email confirmation is ON in Supabase, confirm email first, then login.</small></p>
-    <p id="authMsg"></p>
+    <div class="hr"></div>
+
+    <!-- LOGIN -->
+    <div id="loginBox">
+      <label>Email
+        <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email">
+      </label>
+      <label>Password
+        <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+      </label>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnLogin" type="button">Login</button>
+      </div>
+      <p style="margin-top:10px"><small>Note: If email confirmation is ON in Supabase, confirm email first, then login.</small></p>
+    </div>
+
+    <!-- SIGNUP (Option 2) -->
+    <div id="signupBox" class="hidden">
+      <label>Full Name
+        <input id="suName" placeholder="Your full name" autocomplete="name">
+      </label>
+      <label>Phone
+        <input id="suPhone" placeholder="01XXXXXXXXX" autocomplete="tel">
+      </label>
+      <label>Email
+        <input id="suEmail" type="email" placeholder="you@example.com" autocomplete="email">
+      </label>
+      <label>Password
+        <input id="suPass" type="password" placeholder="Create a password" autocomplete="new-password">
+      </label>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnSignup" type="button">Create Account</button>
+      </div>
+
+      <p style="margin-top:10px"><small>If Supabase email confirmation is ON, verify email before login.</small></p>
+    </div>
+
+    <p id="msg" style="margin-top:10px"></p>
   </div>
 
   <!-- DASHBOARD -->
@@ -84,7 +113,7 @@
     <div class="grid">
       <div class="card" style="margin-top:0">
         <h3 style="margin-top:0">Your Profile</h3>
-        <div id="profileBox"><small>Loading…</small></div>
+        <div id="profileView"><small>Loading…</small></div>
       </div>
 
       <div class="card" style="margin-top:0">
@@ -93,11 +122,9 @@
           Purchase happens on WhatsApp. After payment, admin will enroll you.
         </small></p>
         <div class="row">
-          <a
-            class="btn"
-            href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
-            target="_blank" rel="noopener"
-          >Talk with LizOn</a>
+          <a class="btn"
+             href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
+             target="_blank" rel="noopener">Talk with LizOn</a>
         </div>
       </div>
     </div>
@@ -105,202 +132,183 @@
     <div class="hr"></div>
 
     <h3 style="margin:0 0 10px 0">My Courses</h3>
-    <div id="coursesBox"><small>Loading…</small></div>
-
-    <p id="dashMsg"></p>
+    <div id="myCoursesBox"><small>Loading…</small></div>
   </div>
 </div>
 
-<!-- IMPORTANT: Only ONE Supabase script -->
+<!-- Supabase JS (ONLY ONCE) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-/* =======================
-   SUPABASE CONFIG
-   Replace only these two
-======================= */
+/* ========= SUPABASE CONFIG ========= */
 const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
 
-/* Create client with a safe variable name (NOT "supabase") */
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* Safety: if you forgot to paste */
+if(!SUPABASE_URL.includes("supabase.co") || SUPABASE_ANON_KEY.includes("PASTE_")){
+  console.warn("Supabase keys not set. Paste SUPABASE_URL + SUPABASE_ANON_KEY.");
+}
 
-/* Helpers */
-const el = (id)=>document.getElementById(id);
-const setAuthMsg = (t, ok=true)=>{ el("authMsg").textContent=t||""; el("authMsg").className = ok ? "ok" : "err"; };
-const setDashMsg = (t, ok=true)=>{ el("dashMsg").textContent=t||""; el("dashMsg").className = ok ? "ok" : "err"; };
+const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/* ========= HELPERS ========= */
+const el = id => document.getElementById(id);
+const setMsg = (t, ok=true)=>{
+  el("msg").textContent = t || "";
+  el("msg").className = ok ? "ok" : "err";
+};
+
+let currentUser = null;
+
+/* ========= TABS ========= */
+el("tabLogin").onclick = ()=>{
+  el("loginBox").classList.remove("hidden");
+  el("signupBox").classList.add("hidden");
+  el("tabLogin").classList.add("primary");
+  setMsg("");
+};
+el("tabSignup").onclick = ()=>{
+  el("signupBox").classList.remove("hidden");
+  el("loginBox").classList.add("hidden");
+  setMsg("");
+};
+
+/* ========= AUTH ========= */
+el("btnLogin").onclick = async ()=>{
+  const email = el("loginEmail").value.trim();
+  const password = el("loginPass").value;
+
+  if(!email || !password) return setMsg("Email + password required.", false);
+
+  setMsg("Logging in…");
+  try{
+    const timeout = new Promise((_, rej)=>setTimeout(()=>rej(new Error("Login timeout. Check internet / Supabase keys.")), 12000));
+    const req = supa.auth.signInWithPassword({ email, password });
+    const { data, error } = await Promise.race([req, timeout]);
+
+    if(error) return setMsg(error.message, false);
+    if(!data?.session) return setMsg("Login ok, but no session returned. If email confirmation is ON, verify first.", false);
+
+    setMsg("");
+  }catch(e){
+    setMsg(e.message || "Login failed.", false);
+  }
+};
+
+el("btnSignup").onclick = async ()=>{
+  const name = el("suName").value.trim();
+  const phone = el("suPhone").value.trim();
+  const email = el("suEmail").value.trim();
+  const password = el("suPass").value;
+
+  if(!name || !phone || !email || !password) return setMsg("Name + phone + email + password required.", false);
+
+  setMsg("Creating account…");
+  try{
+    const { data, error } = await supa.auth.signUp({ email, password });
+    if(error) return setMsg(error.message, false);
+
+    // If Supabase returns user immediately, try creating profile now.
+    // (If email confirmation is ON, sometimes user is null until confirmed.)
+    const userId = data?.user?.id || data?.session?.user?.id || null;
+
+    if(userId){
+      const { error: pErr } = await supa.from("profiles").insert([{
+        id: userId,
+        name,
+        phone,
+        role: "student"
+      }]);
+
+      if(pErr){
+        // Not fatal. Often this is RLS. Admin can insert once.
+        return setMsg("Account created ✅ but profile insert blocked by security. Admin can add profile row once, then you can login.", false);
+      }
+
+      setMsg("Account created ✅ Now login.", true);
+      el("tabLogin").click();
+    }else{
+      setMsg("Account created ✅ Please check your email and confirm, then login. (Profile row may be added after first login/admin)", true);
+      el("tabLogin").click();
+    }
+  }catch(e){
+    setMsg(e.message || "Signup failed.", false);
+  }
+};
+
+el("btnLogout").onclick = ()=> supa.auth.signOut();
+
+/* ========= DATA ========= */
 function escapeHtml(s){
-  return String(s||"").replace(/[&<>"']/g, c => ({
+  return String(s || "").replace(/[&<>"']/g, (c)=>({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
 }
 
-let currentUser = null;
-
-window.addEventListener("DOMContentLoaded", () => {
-  // Wire up buttons AFTER DOM is ready
-  el("btnLogin").addEventListener("click", onLogin);
-  el("btnSignup").addEventListener("click", onSignup);
-  el("btnLogout").addEventListener("click", () => sb.auth.signOut());
-
-  // Listen session changes
-  sb.auth.onAuthStateChange(async (_event, session) => {
-    if(session?.user){
-      currentUser = session.user;
-      el("authCard").classList.add("hidden");
-      el("dashCard").classList.remove("hidden");
-      el("who").textContent = `Logged in as ${session.user.email}`;
-      setAuthMsg("");
-      setDashMsg("");
-
-      await loadProfile();
-      await loadMyCourses();
-    } else {
-      currentUser = null;
-      el("dashCard").classList.add("hidden");
-      el("authCard").classList.remove("hidden");
-    }
-  });
-
-  // If already logged in (refresh), this will trigger via onAuthStateChange.
-});
-
-/* ========= AUTH ========= */
-async function onLogin(){
-  setAuthMsg("Logging in…");
-  try{
-    const email = el("email").value.trim();
-    const password = el("pass").value;
-
-    if(!email || !password) return setAuthMsg("Email + password required.", false);
-
-    const timeout = new Promise((_, rej)=>setTimeout(()=>rej(new Error("Login timeout. Check internet or keys.")), 12000));
-    const req = sb.auth.signInWithPassword({ email, password });
-    const { data, error } = await Promise.race([req, timeout]);
-
-    if(error) return setAuthMsg(error.message, false);
-    if(!data?.session) return setAuthMsg("No session returned. If email confirmation is ON, confirm email then login.", false);
-
-    setAuthMsg("");
-  }catch(e){
-    setAuthMsg(e.message || "Login failed.", false);
-  }
-}
-
-async function onSignup(){
-  setAuthMsg("Creating account…");
-  try{
-    const email = el("email").value.trim();
-    const password = el("pass").value;
-
-    if(!email || !password) return setAuthMsg("Email + password required.", false);
-
-    const { data, error } = await sb.auth.signUp({ email, password });
-    if(error) return setAuthMsg(error.message, false);
-
-    // Optional: create a minimal profile row (admin can edit later)
-    if(data?.user){
-      await sb.from("profiles").upsert([{ id: data.user.id, name: email.split("@")[0], phone: "", role: "student" }]);
-    }
-
-    setAuthMsg("Signup done. If email confirmation is ON, confirm email then login.", true);
-  }catch(e){
-    setAuthMsg(e.message || "Signup failed.", false);
-  }
-}
-
-/* ========= DATA LOADERS ========= */
-async function loadProfile(){
-  el("profileBox").innerHTML = "<small>Loading…</small>";
-  const { data, error } = await sb
+async function loadMyProfile(){
+  el("profileView").innerHTML = "<small>Loading…</small>";
+  const { data, error } = await supa
     .from("profiles")
     .select("name, phone, role")
     .eq("id", currentUser.id)
     .maybeSingle();
 
-  if(error){
-    el("profileBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
-    return;
-  }
+  if(error) return el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+  if(!data) return el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
 
-  if(!data){
-    el("profileBox").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
-    return;
-  }
-
-  el("profileBox").innerHTML = `
-    <p><b>Name:</b> ${escapeHtml(data.name || "-")}</p>
-    <p><b>Phone:</b> ${escapeHtml(data.phone || "-")}</p>
-    <p><b>Role:</b> ${escapeHtml(data.role || "student")}</p>
+  el("profileView").innerHTML = `
+    <p><b>Name:</b> ${escapeHtml(data.name||"")}</p>
+    <p><b>Phone:</b> ${escapeHtml(data.phone||"")}</p>
+    <p><b>Role:</b> ${escapeHtml(data.role||"student")}</p>
   `;
 }
 
 async function loadMyCourses(){
-  el("coursesBox").innerHTML = "<small>Loading…</small>";
+  el("myCoursesBox").innerHTML = "<small>Loading…</small>";
 
-  // Requires:
-  // enrollments.user_id -> auth.users.id
-  // enrollments.course_id -> courses.id
-  // courses has join_link + record_link (recommended)
-  const { data, error } = await sb
+  // enrollments should contain: user_id, course_id, join_link, record_link, status (active)
+  const { data, error } = await supa
     .from("enrollments")
-    .select(`
-      id,
-      status,
-      created_at,
-      course_id,
-      courses (
-        id,
-        slug,
-        title,
-        description,
-        join_link,
-        record_link
-      )
-    `)
+    .select("course_id, join_link, record_link, status")
     .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false });
+    .order("course_id", { ascending: true });
 
-  if(error){
-    el("coursesBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
-    return;
-  }
-
+  if(error) return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
   if(!data?.length){
-    el("coursesBox").innerHTML = `
-      <div class="card" style="margin-top:12px">
-        <p class="err" style="margin:0">No courses assigned yet.</p>
+    return el("myCoursesBox").innerHTML = `
+      <div class="card" style="margin-top:0">
+        <p class="err" style="margin:0"><b>No courses assigned yet</b></p>
         <small>After payment, admin will enroll you and courses will appear here.</small>
       </div>
     `;
-    return;
   }
 
-  el("coursesBox").innerHTML = data.map(row => {
-    const c = row.courses;
-    const title = c?.title || "Course";
+  // Get course titles
+  const { data: courses } = await supa.from("courses").select("id,title,slug").order("id",{ascending:true});
+  const map = new Map((courses||[]).map(c => [c.id, c]));
+
+  el("myCoursesBox").innerHTML = data.map(en => {
+    const c = map.get(en.course_id);
+    const title = c?.title || ("Course ID " + en.course_id);
     const slug = (c?.slug || "").toUpperCase();
-    const join = c?.join_link || "";
-    const rec = c?.record_link || "";
 
-    const joinBtn = join
-      ? `<a class="btn primary small" href="${escapeHtml(join)}" target="_blank" rel="noopener">Join the Class</a>`
-      : `<button class="btn small" type="button" disabled style="opacity:.55;cursor:not-allowed">Join link missing</button>`;
+    const joinBtn = en.join_link
+      ? `<a class="btn primary" href="${escapeHtml(en.join_link)}" target="_blank" rel="noopener">Join the Class</a>`
+      : `<button class="btn" type="button" disabled style="opacity:.5;cursor:not-allowed">Join the Class</button>`;
 
-    const recBtn = rec
-      ? `<a class="btn small" href="${escapeHtml(rec)}" target="_blank" rel="noopener">Class Record</a>`
-      : `<button class="btn small" type="button" disabled style="opacity:.55;cursor:not-allowed">Record link missing</button>`;
+    const recBtn = en.record_link
+      ? `<a class="btn" href="${escapeHtml(en.record_link)}" target="_blank" rel="noopener">Class Record</a>`
+      : `<button class="btn" type="button" disabled style="opacity:.5;cursor:not-allowed">Class Record</button>`;
 
     return `
       <div class="card" style="margin-top:12px">
         <div class="between">
           <div>
-            <span class="tag">${escapeHtml(slug || "COURSE")}</span>
+            ${slug ? `<div class="tag">${escapeHtml(slug)}</div>` : ``}
             <h3 style="margin:10px 0 6px 0">${escapeHtml(title)}</h3>
-            <small>${escapeHtml(c?.description || "")}</small>
+            <small>Status: ${escapeHtml(en.status || "active")}</small>
           </div>
-          <div class="row" style="justify-content:flex-end">
+          <div class="row">
             ${joinBtn}
             ${recBtn}
           </div>
@@ -309,6 +317,25 @@ async function loadMyCourses(){
     `;
   }).join("");
 }
+
+/* ========= SESSION ========= */
+supa.auth.onAuthStateChange(async (_, session)=>{
+  if(session?.user){
+    currentUser = session.user;
+    el("authCard").classList.add("hidden");
+    el("dashCard").classList.remove("hidden");
+    el("who").textContent = `Logged in as ${session.user.email}`;
+
+    await loadMyProfile();
+    await loadMyCourses();
+  }else{
+    currentUser = null;
+    el("dashCard").classList.add("hidden");
+    el("authCard").classList.remove("hidden");
+  }
+});
+
+// On load: if session exists, Supabase will trigger onAuthStateChange automatically.
 </script>
 </body>
 </html>
