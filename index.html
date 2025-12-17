@@ -1,150 +1,116 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LizOn Education — Student Portal</title>
-<meta name="theme-color" content="#0b2a1f">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LizOn Student Portal</title>
+  <meta name="theme-color" content="#0b2a1f" />
 
-<style>
-:root{
-  --bg:#06140f;--card:#0c2019;--line:#1d4a3a;
-  --text:#e9f3ef;--muted:#b7c9c2;--gold:#d7b24a;
-  --danger:#ff6b6b;--ok:#7CFFB2;
-}
-body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
-.wrap{max-width:980px;margin:auto;padding:22px}
-.card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.between{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.btn{padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
-.btn.primary{border-color:rgba(215,178,74,.7)}
-.btn.danger{border-color:rgba(255,107,107,.7)}
-input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#071a14;color:var(--text)}
-.hidden{display:none}
-.hr{height:1px;background:var(--line);margin:14px 0}
-.ok{color:var(--ok)} .err{color:var(--danger)}
-.price{font-size:20px;font-weight:700}
-</style>
+  <style>
+    body{
+      margin:0;
+      font-family:system-ui, Arial;
+      background:#06140f;
+      color:#e9f3ef;
+    }
+    .wrap{max-width:520px;margin:80px auto;padding:24px}
+    .card{
+      background:#0c2019;
+      border:1px solid #1d4a3a;
+      border-radius:16px;
+      padding:24px;
+    }
+    input{
+      width:100%;
+      padding:12px;
+      margin-top:6px;
+      border-radius:10px;
+      border:1px solid #1d4a3a;
+      background:#071a14;
+      color:#fff;
+    }
+    button{
+      margin-top:16px;
+      padding:12px 16px;
+      border-radius:12px;
+      border:1px solid #d7b24a;
+      background:transparent;
+      color:#fff;
+      cursor:pointer;
+    }
+    .row{display:flex;gap:12px}
+    .msg{margin-top:12px}
+    .ok{color:#7CFFB2}
+    .err{color:#ff6b6b}
+  </style>
 </head>
 
 <body>
 <div class="wrap">
-<h1>LizOn Education — Student Portal</h1>
-<small>Student Dashboard (WhatsApp purchase → Admin enrolls → Access here)</small>
+  <h1>LizOn Education — Student Portal</h1>
 
-<div style="text-align:right;margin-top:10px">
-  <a class="btn" href="/admin.html">Admin Panel</a>
-</div>
+  <div class="card">
+    <label>Email
+      <input id="email" type="email" />
+    </label>
 
-<!-- AUTH -->
-<div class="card" id="authCard">
-<h2>Login / Signup</h2>
+    <label>Password
+      <input id="password" type="password" />
+    </label>
 
-<label>Email</label>
-<input id="email">
+    <div class="row">
+      <button id="btnLogin">Login</button>
+      <button id="btnSignup">Signup</button>
+    </div>
 
-<label>Password</label>
-<input id="password" type="password">
-
-<div class="row" style="margin-top:12px">
-  <button class="btn primary" id="btnLogin">Login</button>
-  <button class="btn" id="btnSignup">Signup</button>
-</div>
-
-<p id="msg"></p>
-</div>
-
-<!-- DASHBOARD -->
-<div class="card hidden" id="dashCard">
-<div class="between">
-  <div>
-    <h2 style="margin:0">My Courses</h2>
-    <small id="who"></small>
+    <div id="msg" class="msg"></div>
   </div>
-  <button class="btn danger" id="btnLogout">Logout</button>
-</div>
-
-<div class="hr"></div>
-<div id="coursesBox"><small>Loading…</small></div>
-</div>
 </div>
 
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* ===== SUPABASE CONFIG ===== */
+/* ===== CONFIG (CHANGE ONLY THESE) ===== */
 const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";  // 👈 replace only this
+const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
 
+/* ===== INIT ===== */
 const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
 
-/* ===== HELPERS ===== */
-const el = id => document.getElementById(id);
-const msg = (t,ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
+const msg = (t, ok=true)=>{
+  const el = document.getElementById("msg");
+  el.textContent = t;
+  el.className = ok ? "msg ok" : "msg err";
+};
 
-let currentUser=null;
-
-/* ===== AUTH ===== */
-el("btnLogin").onclick = async ()=>{
+document.getElementById("btnLogin").onclick = async () => {
   msg("Logging in…");
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: el("email").value.trim(),
-    password: el("password").value
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email, password
   });
-  if(error) return msg(error.message,false);
+
+  if(error) return msg(error.message, false);
+  msg("Login successful ✅", true);
 };
 
-el("btnSignup").onclick = async ()=>{
+document.getElementById("btnSignup").onclick = async () => {
   msg("Creating account…");
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
   const { error } = await supabase.auth.signUp({
-    email: el("email").value.trim(),
-    password: el("password").value
+    email, password
   });
-  if(error) return msg(error.message,false);
-  msg("Account created. Now login.");
+
+  if(error) return msg(error.message, false);
+  msg("Signup successful. Now login.", true);
 };
-
-el("btnLogout").onclick = ()=>supabase.auth.signOut();
-
-/* ===== LOAD COURSES ===== */
-async function loadMyCourses(){
-  const { data, error } = await supabase
-    .from("enrollments")
-    .select("courses(title,join_link,record_link)")
-    .eq("user_id", currentUser.id);
-
-  if(error) return el("coursesBox").innerHTML=`<p class="err">${error.message}</p>`;
-  if(!data.length) return el("coursesBox").innerHTML="<small>No courses assigned yet.</small>";
-
-  el("coursesBox").innerHTML = data.map(r=>`
-    <div class="card">
-      <h3>${r.courses.title}</h3>
-      <div class="row">
-        <a class="btn primary" target="_blank" href="${r.courses.join_link}">Join the Class</a>
-        <a class="btn" target="_blank" href="${r.courses.record_link}">Class Record</a>
-      </div>
-    </div>
-  `).join("");
-}
-
-/* ===== SESSION ===== */
-supabase.auth.onAuthStateChange(async (_,session)=>{
-  if(session?.user){
-    currentUser=session.user;
-    el("authCard").classList.add("hidden");
-    el("dashCard").classList.remove("hidden");
-    el("who").textContent=`Logged in as ${session.user.email}`;
-    loadMyCourses();
-  }else{
-    currentUser=null;
-    el("dashCard").classList.add("hidden");
-    el("authCard").classList.remove("hidden");
-  }
-});
 </script>
 </body>
 </html>
