@@ -12,379 +12,277 @@
       --danger:#ff6b6b; --ok:#7CFFB2;
     }
     body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
-    .wrap{max-width:1100px;margin:0 auto;padding:22px;}
+    .wrap{max-width:980px;margin:0 auto;padding:22px;}
     .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     .between{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    .btn{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+    .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;display:inline-block}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
-    input, select{
+    input{
       width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
       background:#071a14;color:var(--text);
     }
     label{display:block;margin-top:10px}
     small{color:var(--muted)}
-    .hidden{display:none}
     .hr{height:1px;background:var(--line);margin:14px 0}
     .ok{color:var(--ok)}
     .err{color:var(--danger)}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-bottom:1px solid var(--line);padding:10px;vertical-align:top;text-align:left;font-size:14px}
-    .tag{display:inline-block;border:1px solid var(--line);padding:4px 8px;border-radius:999px;color:var(--muted);font-size:12px}
-    code{color:#b7c9c2}
+    .tag{display:inline-block;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted)}
+    .courseRow{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;margin-top:10px;background:#071a14}
+    .courseRow input{width:auto}
   </style>
 </head>
-
 <body>
 <div class="wrap">
   <div class="between">
     <div>
       <h1 style="margin:0">LizOn Education — Admin Panel</h1>
-      <small>Day 5 — Approvals + Enrollments</small>
+      <small>Enroll students into one or multiple courses</small>
     </div>
-    <div class="row">
-      <a class="btn" href="/index.html">Student Portal</a>
-      <button class="btn danger hidden" id="btnLogout">Logout</button>
-    </div>
+    <a class="btn" href="/index.html">Student Portal</a>
   </div>
 
-  <!-- LOGIN -->
   <div class="card" id="authCard">
-    <h2 style="margin-top:0">Admin Login</h2>
-    <small>Only admins can access this page.</small>
-
-    <label>Email
-      <input id="email" type="email" placeholder="admin@email.com">
-    </label>
-    <label>Password
-      <input id="pass" type="password" placeholder="••••••••">
-    </label>
-
+    <h2>Admin Login</h2>
+    <label>Email <input id="email" type="email" placeholder="admin@example.com"></label>
+    <label>Password <input id="pass" type="password" placeholder="••••••••"></label>
     <div class="row" style="margin-top:12px">
       <button class="btn primary" id="btnLogin">Login</button>
     </div>
-
     <p id="msg"></p>
   </div>
 
-  <!-- ADMIN -->
-  <div class="card hidden" id="adminCard">
+  <div class="card" id="adminCard" style="display:none">
     <div class="between">
       <div>
-        <h2 style="margin:0">Applications</h2>
+        <h2 style="margin:0">Enrollment Manager</h2>
         <small id="who"></small>
       </div>
-      <div class="row">
-        <button class="btn" id="btnRefresh">Refresh</button>
-      </div>
+      <button class="btn danger" id="btnLogout">Logout</button>
     </div>
 
     <div class="hr"></div>
 
-    <div class="row">
-      <label style="min-width:240px;flex:1">Filter by Status
-        <select id="statusFilter">
-          <option value="all">All</option>
-          <option value="pending" selected>Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
-      </label>
-      <label style="min-width:240px;flex:1">Course
-        <select id="courseFilter">
-          <option value="all">All</option>
-        </select>
-      </label>
-    </div>
-
-    <div style="overflow:auto;margin-top:12px">
-      <table>
-        <thead>
-          <tr>
-            <th>When</th>
-            <th>User</th>
-            <th>Course</th>
-            <th>Payment</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="appsTbody">
-          <tr><td colspan="6"><small>Loading…</small></td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="hr"></div>
-
-    <h2 style="margin:0">Manual Enroll (Existing Student)</h2>
-    <small>Use this to enroll existing students without payment. You can get User ID from Supabase → Authentication → Users.</small>
-
-    <div class="row" style="margin-top:10px">
-      <label style="min-width:320px;flex:2">Student User ID (uuid)
-        <input id="enrollUserId" placeholder="e.g., 8fd0...">
-      </label>
-      <label style="min-width:240px;flex:1">Course
-        <select id="enrollCourse"></select>
-      </label>
-      <label style="min-width:200px;flex:1">Status
-        <select id="enrollStatus">
-          <option value="active" selected>active</option>
-          <option value="inactive">inactive</option>
-        </select>
-      </label>
-    </div>
-
+    <h3 style="margin:0 0 10px 0">Find Student</h3>
+    <label>Student Email (must exist in profiles.email)
+      <input id="searchEmail" placeholder="student@example.com">
+    </label>
     <div class="row" style="margin-top:12px">
-      <button class="btn primary" id="btnManualEnroll">Enroll Now</button>
+      <button class="btn primary" id="btnFind">Find</button>
     </div>
 
-    <p id="enrollMsg"></p>
+    <div class="hr"></div>
+
+    <div id="studentBox"><small>Search a student by email.</small></div>
+
+    <div class="hr"></div>
+
+    <div id="coursesBox" style="display:none">
+      <h3 style="margin:0 0 10px 0">Select Courses</h3>
+      <div id="courseChecks"></div>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="btnSave">Save Enrollments</button>
+      </div>
+      <p id="saveMsg"></p>
+    </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ✅ Replace ONLY these 2 lines
-  const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
+const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const el = (id)=>document.getElementById(id);
+const el = id => document.getElementById(id);
+const setMsg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
+const setSaveMsg = (t, ok=true)=>{ el("saveMsg").textContent=t||""; el("saveMsg").className=ok?"ok":"err"; };
 
-  const msg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
-  const enrollMsg = (t, ok=true)=>{ el("enrollMsg").textContent=t||""; el("enrollMsg").className=ok?"ok":"err"; };
-
-  let me = null;
-  let courses = [];
+let adminUser = null;
+let selectedStudent = null;
+let allCourses = [];
+let studentEnrollments = new Set();
 
 el("btnLogin").onclick = async ()=>{
-  msg("Logging in…");
+  setMsg("Logging in…");
+  const email = el("email").value.trim();
+  const password = el("pass").value;
+
   try{
-    const email = el("email").value.trim();
-    const password = el("pass").value;
-
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if(error) return msg("Login failed: " + error.message, false);
-    if(!data?.session) return msg("No session returned. Check email confirmation + keys.", false);
-
-    msg("Logged in.", true);
+    if(error) return setMsg(error.message, false);
+    if(!data?.session) return setMsg("No session returned.", false);
+    setMsg("");
   }catch(e){
-    msg("Login crash: " + (e.message || e), false);
+    setMsg(e.message || "Login failed.", false);
   }
 };
 
-  el("btnLogout").onclick = ()=> supabase.auth.signOut();
+el("btnLogout").onclick = ()=> supabase.auth.signOut();
 
-  el("btnRefresh").onclick = async ()=>{
-    await loadApplications();
-  };
+async function requireAdmin(){
+  // check profile role
+  const { data, error } = await supabase.from("profiles")
+    .select("role, name, email")
+    .eq("id", adminUser.id)
+    .maybeSingle();
 
-  el("statusFilter").onchange = loadApplications;
-  el("courseFilter").onchange = loadApplications;
-
-  async function isAdmin(userId){
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("role, name")
-      .eq("id", userId)
-      .maybeSingle();
-    if(error) throw error;
-    return data?.role === "admin";
+  if(error) throw new Error(error.message);
+  if(!data || (data.role || "").toLowerCase() !== "admin"){
+    throw new Error("Access denied. This account is not admin (profiles.role must be 'admin').");
   }
 
-  async function loadCourses(){
-    const { data, error } = await supabase
-      .from("courses")
-      .select("id, slug, title")
-      .order("id",{ascending:true});
-    if(error) throw error;
-    courses = data || [];
+  el("who").textContent = `Admin: ${adminUser.email}`;
+}
 
-    // Filters
-    const cf = el("courseFilter");
-    cf.innerHTML = `<option value="all">All</option>` + courses.map(c =>
-      `<option value="${c.id}">${escapeHtml(c.title)}</option>`
-    ).join("");
+async function loadCourses(){
+  const { data, error } = await supabase.from("courses")
+    .select("id, slug, title")
+    .order("id", { ascending: true });
 
-    // Manual enroll select
-    const ec = el("enrollCourse");
-    ec.innerHTML = courses.map(c =>
-      `<option value="${c.id}">${escapeHtml(c.title)}</option>`
-    ).join("");
+  if(error) throw new Error(error.message);
+  allCourses = data || [];
+}
+
+el("btnFind").onclick = async ()=>{
+  setSaveMsg("");
+  el("coursesBox").style.display = "none";
+  selectedStudent = null;
+  studentEnrollments = new Set();
+  el("studentBox").innerHTML = "<small>Searching…</small>";
+
+  const email = el("searchEmail").value.trim().toLowerCase();
+  if(!email) return el("studentBox").innerHTML = `<p class="err">Enter student email.</p>`;
+
+  // find student in profiles by email
+  const { data: prof, error: pErr } = await supabase
+    .from("profiles")
+    .select("id, name, phone, email, role")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if(pErr) return el("studentBox").innerHTML = `<p class="err">${escapeHtml(pErr.message)}</p>`;
+  if(!prof) return el("studentBox").innerHTML = `<p class="err">Student not found in profiles.email. Ask student to signup again OR fill profiles.email manually.</p>`;
+
+  selectedStudent = prof;
+
+  // load current enrollments
+  const { data: ens, error: eErr } = await supabase
+    .from("enrollments")
+    .select("course_id, status")
+    .eq("user_id", selectedStudent.id);
+
+  if(eErr) return el("studentBox").innerHTML = `<p class="err">${escapeHtml(eErr.message)}</p>`;
+
+  studentEnrollments = new Set((ens||[]).map(x => x.course_id));
+
+  el("studentBox").innerHTML = `
+    <div class="card" style="margin-top:0">
+      <div class="between">
+        <div>
+          <b>${escapeHtml(selectedStudent.name || "Student")}</b><br>
+          <small>${escapeHtml(selectedStudent.email || "")}</small><br>
+          <small>Phone: ${escapeHtml(selectedStudent.phone || "")}</small>
+        </div>
+        <div><span class="tag">role: ${escapeHtml(selectedStudent.role || "student")}</span></div>
+      </div>
+    </div>
+  `;
+
+  renderCourseChecks();
+  el("coursesBox").style.display = "block";
+};
+
+function renderCourseChecks(){
+  const box = el("courseChecks");
+  box.innerHTML = allCourses.map(c => {
+    const checked = studentEnrollments.has(c.id) ? "checked" : "";
+    return `
+      <div class="courseRow">
+        <input type="checkbox" id="c_${c.id}" ${checked}>
+        <label for="c_${c.id}" style="margin:0">
+          <b>${escapeHtml(c.title)}</b> <small>(${escapeHtml((c.slug||"").toUpperCase())})</small>
+        </label>
+      </div>
+    `;
+  }).join("");
+}
+
+el("btnSave").onclick = async ()=>{
+  if(!selectedStudent) return;
+
+  setSaveMsg("Saving…");
+
+  const wanted = new Set();
+  for(const c of allCourses){
+    const cb = document.getElementById(`c_${c.id}`);
+    if(cb && cb.checked) wanted.add(c.id);
   }
 
-  function courseTitle(id){
-    const c = courses.find(x=>x.id===id);
-    return c ? c.title : `Course #${id}`;
-  }
+  // compute changes
+  const toAdd = [...wanted].filter(id => !studentEnrollments.has(id));
+  const toRemove = [...studentEnrollments].filter(id => !wanted.has(id));
 
-  async function loadApplications(){
-    const tbody = el("appsTbody");
-    tbody.innerHTML = `<tr><td colspan="6"><small>Loading…</small></td></tr>`;
-
-    let q = supabase
-      .from("applications")
-      .select("id, user_id, course_id, payment_method, trx_id, screenshot_url, status, created_at")
-      .order("created_at",{ascending:false});
-
-    const sf = el("statusFilter").value;
-    if(sf !== "all") q = q.eq("status", sf);
-
-    const cf = el("courseFilter").value;
-    if(cf !== "all") q = q.eq("course_id", Number(cf));
-
-    const { data, error } = await q;
-    if(error){
-      tbody.innerHTML = `<tr><td colspan="6" class="err">${escapeHtml(error.message)}</td></tr>`;
-      return;
-    }
-
-    if(!data?.length){
-      tbody.innerHTML = `<tr><td colspan="6"><small>No applications found.</small></td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = data.map(a => `
-      <tr>
-        <td><small>${new Date(a.created_at).toLocaleString()}</small></td>
-        <td>
-          <div class="tag">user_id</div><br>
-          <code>${escapeHtml(a.user_id)}</code>
-        </td>
-        <td>${escapeHtml(courseTitle(a.course_id))}</td>
-        <td>
-          <small>Method: ${escapeHtml(a.payment_method||"-")}</small><br>
-          <small>Trx: ${escapeHtml(a.trx_id||"-")}</small><br>
-          <small>Shot: ${escapeHtml(a.screenshot_url||"-")}</small>
-        </td>
-        <td><span class="tag">${escapeHtml(a.status||"pending")}</span></td>
-        <td>
-          <div class="row">
-            <button class="btn primary" onclick="window.__approve('${a.id}','${a.user_id}',${a.course_id})">Approve</button>
-            <button class="btn danger" onclick="window.__reject('${a.id}')">Reject</button>
-          </div>
-        </td>
-      </tr>
-    `).join("");
-  }
-
-  async function approve(appId, userId, courseId){
-    // 1) update application status
-    const { error: e1 } = await supabase
-      .from("applications")
-      .update({ status: "approved" })
-      .eq("id", appId);
-    if(e1) return alert(e1.message);
-
-    // 2) create enrollment (upsert-ish by checking existing)
-    const { data: existing, error: e2 } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("course_id", courseId)
-      .maybeSingle();
-    if(e2) return alert(e2.message);
-
-    if(!existing){
-      const { error: e3 } = await supabase.from("enrollments").insert([{
-        user_id: userId,
-        course_id: courseId,
+  try{
+    // add new enrollments
+    if(toAdd.length){
+      const rows = toAdd.map(course_id => ({
+        user_id: selectedStudent.id,
+        course_id,
         status: "active"
-      }]);
-      if(e3) return alert(e3.message);
+      }));
+      const { error } = await supabase.from("enrollments").insert(rows);
+      if(error) throw new Error(error.message);
     }
 
-    await loadApplications();
-    alert("Approved + Enrollment created.");
-  }
-
-  async function reject(appId){
-    const { error } = await supabase
-      .from("applications")
-      .update({ status: "rejected" })
-      .eq("id", appId);
-    if(error) return alert(error.message);
-
-    await loadApplications();
-    alert("Rejected.");
-  }
-
-  el("btnManualEnroll").onclick = async ()=>{
-    enrollMsg("Enrolling…");
-    const userId = el("enrollUserId").value.trim();
-    const courseId = Number(el("enrollCourse").value);
-    const status = el("enrollStatus").value;
-
-    if(!userId) return enrollMsg("User ID is required.", false);
-
-    // Check existing
-    const { data: existing, error: e1 } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("course_id", courseId)
-      .maybeSingle();
-    if(e1) return enrollMsg(e1.message,false);
-
-    if(existing) return enrollMsg("Already enrolled for this course.", false);
-
-    const { error: e2 } = await supabase.from("enrollments").insert([{
-      user_id: userId,
-      course_id: courseId,
-      status
-    }]);
-    if(e2) return enrollMsg(e2.message,false);
-
-    enrollMsg("Enrolled successfully.", true);
-  };
-
-  function escapeHtml(s){
-    return String(s || "").replace(/[&<>"']/g, (c) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[c]));
-  }
-
-  // Expose actions
-  window.__approve = approve;
-  window.__reject = reject;
-
-  supabase.auth.onAuthStateChange(async (_, session)=>{
-    const loggedIn = !!session?.user;
-    el("btnLogout").classList.toggle("hidden", !loggedIn);
-
-    if(!loggedIn){
-      me = null;
-      el("authCard").classList.remove("hidden");
-      el("adminCard").classList.add("hidden");
-      return;
+    // remove unchecked enrollments
+    for(const course_id of toRemove){
+      const { error } = await supabase.from("enrollments")
+        .delete()
+        .eq("user_id", selectedStudent.id)
+        .eq("course_id", course_id);
+      if(error) throw new Error(error.message);
     }
 
-    me = session.user;
-    el("who").textContent = `Logged in as ${me.email}`;
+    studentEnrollments = wanted;
+    setSaveMsg("Saved! Student courses updated.", true);
+
+  }catch(e){
+    setSaveMsg("Save failed: " + (e.message || e), false);
+  }
+};
+
+function escapeHtml(s){
+  return String(s || "").replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+supabase.auth.onAuthStateChange(async (_, session)=>{
+  if(session?.user){
+    adminUser = session.user;
 
     try{
-      const ok = await isAdmin(me.id);
-      if(!ok){
-        el("authCard").classList.remove("hidden");
-        el("adminCard").classList.add("hidden");
-        msg("Access denied. This page is admin-only.", false);
-        return;
-      }
-
-      el("authCard").classList.add("hidden");
-      el("adminCard").classList.remove("hidden");
-      msg("");
-
+      await requireAdmin();
       await loadCourses();
-      await loadApplications();
 
-    }catch(err){
-      msg(err.message || "Admin check failed.", false);
+      el("authCard").style.display = "none";
+      el("adminCard").style.display = "block";
+    }catch(e){
+      el("authCard").style.display = "block";
+      el("adminCard").style.display = "none";
+      setMsg(e.message || "Admin check failed.", false);
+      // stay logged in but blocked; you can logout or fix role
     }
-  });
+
+  }else{
+    adminUser = null;
+    el("authCard").style.display = "block";
+    el("adminCard").style.display = "none";
+  }
+});
 </script>
 </body>
 </html>
