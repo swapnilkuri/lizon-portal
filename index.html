@@ -381,10 +381,12 @@ window.addEventListener("pageshow", () => {
 });
 
 document.addEventListener("visibilitychange", () => {
-  if(document.visibilityState === "visible"){
-    refreshAfterReturn();
+  if (document.visibilityState === "visible" && currentUser) {
+    loadMyProfile();
+    loadMyCourses();
   }
 });
+
 
 // Default view
 showLogin();
