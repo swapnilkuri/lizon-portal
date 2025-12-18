@@ -209,24 +209,34 @@ el("btnSignup").addEventListener("click", async ()=>{
     const phone = el("suPhone").value.trim();
     const email = el("suEmail").value.trim();
     const password = el("suPass").value;
-    if(!name || !phone || !email || !password) return setMsg("All fields are required.", false);
 
-    const { data, error } = await sb.auth.signUp({ email, password });
+    if(!name || !phone || !email || !password){
+      return setMsg("All fields are required.", false);
+    }
+
+    const timeout = new Promise((_, rej) =>
+      setTimeout(()=>rej(new Error("Signup timeout. Check CORS / internet / Supabase project status.")), 12000)
+    );
+
+    const req = supabaseClient.auth.signUp({ email, password });
+    const { data, error } = await Promise.race([req, timeout]);
+
     if(error) return setMsg(error.message, false);
 
-    // IMPORTANT: Default role is student.
-    // Admins should NOT be created via signup page.
+    // If email confirmation is ON, user may be null here. That's OK.
     if(data?.user){
-      const { error: pErr } = await sb.from("profiles").insert([{
+      const { error: pErr } = await supabaseClient.from("profiles").insert([{
         id: data.user.id, name, phone, role: "student"
       }]);
+
+      // profile insert can fail due to RLS — show message but still ok
       if(pErr){
-        setMsg("Account created. Profile insert blocked by security. Admin can add profile once. Now login.", false);
+        setMsg("Account created ✅ Now verify email (if required) and login. (Profile row may need admin insert)", true);
       } else {
-        setMsg("Account created. Now login.", true);
+        setMsg("Account created ✅ Now verify email (if required) and login.", true);
       }
     } else {
-      setMsg("Account created. Verify email if required, then login.", true);
+      setMsg("Account created ✅ Check your email for verification, then login.", true);
     }
 
     showLogin();
@@ -234,6 +244,7 @@ el("btnSignup").addEventListener("click", async ()=>{
     setMsg(e.message || "Signup failed.", false);
   }
 });
+
 
 /* ✅ Logout that survives “back/return” weirdness */
 el("btnLogout").addEventListener("click", async ()=>{
