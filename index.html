@@ -22,13 +22,10 @@
     .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
-    input, select{
-      width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
-      background:#071a14;color:var(--text);
-    }
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#071a14;color:var(--text);}
     label{display:block;margin-top:10px}
     small{color:var(--muted)}
-    .hidden{display:none !important;}
+    .hidden{display:none}
     .hr{height:1px;background:var(--line);margin:14px 0}
     .ok{color:var(--ok)}
     .err{color:var(--danger)}
@@ -46,8 +43,7 @@
       <h1 class="title">LizOn Education — Student Portal</h1>
       <small>Student Dashboard (WhatsApp purchase → Admin enrolls → Access here)</small>
     </div>
-
-    <!-- Hidden by default; only shows if role=admin -->
+    <!-- Option B: show ONLY if role=admin -->
     <a class="btn hidden" id="adminBtn" href="/admin.html">Admin Panel</a>
   </div>
 
@@ -123,9 +119,9 @@
           Purchase happens on WhatsApp. After payment, admin will enroll you.
         </small></p>
         <div class="row">
-          <a class="btn"
+          <a class="btn" id="waBtn"
              href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
-             target="_blank" rel="noopener noreferrer">
+             target="_blank" rel="noopener">
             Talk with LizOn
           </a>
         </div>
@@ -143,16 +139,17 @@
 
 <script>
 /* ========= SUPABASE CONFIG (REPLACE ONLY THESE 2 LINES) ========= */
-const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
+const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.coo";
 const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
 /* =============================================================== */
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const el = id => document.getElementById(id);
 const setMsg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
 
 let currentUser = null;
+let currentRole = "student";
 
 /* ========= UI HELPERS ========= */
 function escapeHtml(s){
@@ -174,6 +171,11 @@ function showSignup(){
   el("tabLogin").classList.remove("primary");
   setMsg("");
 }
+function setAdminButtonVisible(isAdmin){
+  const btn = el("adminBtn");
+  if(isAdmin) btn.classList.remove("hidden");
+  else btn.classList.add("hidden");
+}
 
 /* ========= TAB EVENTS ========= */
 el("tabLogin").addEventListener("click", showLogin);
@@ -187,13 +189,12 @@ el("btnLogin").addEventListener("click", async ()=>{
     const password = el("loginPass").value;
     if(!email || !password) return setMsg("Email + password required.", false);
 
-    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet / Supabase keys.")), 12000));
-    const req = supabaseClient.auth.signInWithPassword({ email, password });
-
+    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet / keys.")), 12000));
+    const req = sb.auth.signInWithPassword({ email, password });
     const { data, error } = await Promise.race([req, timeout]);
 
     if(error) return setMsg(error.message, false);
-    if(!data?.session) return setMsg("Login OK but no session. Check Supabase email confirmation.", false);
+    if(!data?.session) return setMsg("Login OK but no session. Check email confirmation.", false);
 
     setMsg("");
   }catch(e){
@@ -208,15 +209,15 @@ el("btnSignup").addEventListener("click", async ()=>{
     const phone = el("suPhone").value.trim();
     const email = el("suEmail").value.trim();
     const password = el("suPass").value;
-
     if(!name || !phone || !email || !password) return setMsg("All fields are required.", false);
 
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    const { data, error } = await sb.auth.signUp({ email, password });
     if(error) return setMsg(error.message, false);
 
-    // Best-effort profile insert (if RLS blocks, admin can insert manually)
+    // IMPORTANT: Default role is student.
+    // Admins should NOT be created via signup page.
     if(data?.user){
-      const { error: pErr } = await supabaseClient.from("profiles").insert([{
+      const { error: pErr } = await sb.from("profiles").insert([{
         id: data.user.id, name, phone, role: "student"
       }]);
       if(pErr){
@@ -234,12 +235,12 @@ el("btnSignup").addEventListener("click", async ()=>{
   }
 });
 
-/* ✅ Logout: always works + avoids “back cache zombie” state */
+/* ✅ Logout that survives “back/return” weirdness */
 el("btnLogout").addEventListener("click", async ()=>{
   try{
-    await supabaseClient.auth.signOut();
+    await sb.auth.signOut();
   } finally {
-    // Hard reload to reset any cached / restored state
+    // Hard reload prevents BFCache zombie state
     window.location.replace(window.location.pathname);
   }
 });
@@ -248,38 +249,40 @@ el("btnLogout").addEventListener("click", async ()=>{
 async function loadMyProfile(){
   el("profileView").innerHTML = "<small>Loading…</small>";
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await sb
     .from("profiles")
     .select("name, phone, role")
     .eq("id", currentUser.id)
     .maybeSingle();
 
-  if(error) {
-    el("adminBtn").classList.add("hidden");
-    return el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+  if(error){
+    el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+    currentRole = "student";
+    setAdminButtonVisible(false);
+    return;
   }
-  if(!data) {
-    el("adminBtn").classList.add("hidden");
-    return el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
+
+  if(!data){
+    el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
+    currentRole = "student";
+    setAdminButtonVisible(false);
+    return;
   }
+
+  currentRole = data.role || "student";
+  setAdminButtonVisible(currentRole === "admin");
 
   el("profileView").innerHTML = `
     <p><b>Name:</b> ${escapeHtml(data.name||"")}</p>
     <p><b>Phone:</b> ${escapeHtml(data.phone||"")}</p>
-    <p><b>Role:</b> ${escapeHtml(data.role||"student")}</p>
+    <p><b>Role:</b> ${escapeHtml(currentRole)}</p>
   `;
-
-  // ✅ Show Admin Panel ONLY for admins
-  if((data.role||"").toLowerCase() === "admin") el("adminBtn").classList.remove("hidden");
-  else el("adminBtn").classList.add("hidden");
 }
 
 async function loadMyCourses(){
   el("myCoursesBox").innerHTML = "<small>Loading…</small>";
 
-  // enrollments columns expected:
-  // user_id (uuid), course_id (int8), status (text), join_link (text), record_link (text)
-  const { data, error } = await supabaseClient
+  const { data, error } = await sb
     .from("enrollments")
     .select(`
       course_id,
@@ -291,16 +294,18 @@ async function loadMyCourses(){
     .eq("user_id", currentUser.id);
 
   if(error){
-    return el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+    el("myCoursesBox").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+    return;
   }
 
   if(!data?.length){
-    return el("myCoursesBox").innerHTML = `
+    el("myCoursesBox").innerHTML = `
       <div class="card" style="margin-top:12px">
         <p class="err" style="margin:0"><b>No courses assigned yet</b></p>
         <small>After payment, admin will enroll you and courses will appear here.</small>
       </div>
     `;
+    return;
   }
 
   el("myCoursesBox").innerHTML = data.map(e => {
@@ -310,14 +315,15 @@ async function loadMyCourses(){
     const desc = c.description || "";
     const status = e.status || "active";
     const join = e.join_link || "";
-    const rec = e.record_link || "";
+    const rec  = e.record_link || "";
 
+    // IMPORTANT: use buttons + window.open so user never leaves portal tab
     const joinBtn = join
-      ? `<a class="btn primary" href="${escapeHtml(join)}" target="_blank" rel="noopener noreferrer">Join the Class</a>`
+      ? `<button class="btn primary ext" type="button" data-url="${escapeHtml(join)}">Join the Class</button>`
       : `<span class="tag">Join link missing</span>`;
 
     const recBtn = rec
-      ? `<a class="btn" href="${escapeHtml(rec)}" target="_blank" rel="noopener noreferrer">Class Record</a>`
+      ? `<button class="btn ext" type="button" data-url="${escapeHtml(rec)}">Class Record</button>`
       : `<span class="tag">Record link missing</span>`;
 
     return `
@@ -337,45 +343,62 @@ async function loadMyCourses(){
       </div>
     `;
   }).join("");
+
+  // attach click handlers for external buttons (open in new tab always)
+  document.querySelectorAll("button.ext").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const url = btn.getAttribute("data-url");
+      if(url) window.open(url, "_blank", "noopener");
+    });
+  });
 }
 
-/* ========= SESSION ========= */
+/* ========= DASH REFRESH ========= */
 async function refreshDashboard(session){
   currentUser = session.user;
+
   el("authCard").classList.add("hidden");
   el("dashCard").classList.remove("hidden");
   el("who").textContent = `Logged in as ${session.user.email}`;
 
+  // render fresh every time
   await loadMyProfile();
   await loadMyCourses();
 }
 
-supabaseClient.auth.onAuthStateChange(async (_, session)=>{
+/* ========= SESSION ========= */
+sb.auth.onAuthStateChange(async (_, session)=>{
   if(session?.user){
     await refreshDashboard(session);
   } else {
     currentUser = null;
-    el("adminBtn").classList.add("hidden");
+    currentRole = "student";
+    setAdminButtonVisible(false);
     el("dashCard").classList.add("hidden");
     el("authCard").classList.remove("hidden");
     showLogin();
   }
 });
 
-/* ✅ BFCache fix: if user returns from external link using Back, reload page */
-window.addEventListener("pageshow", (e) => {
-  if (e.persisted) window.location.reload();
-});
-
-/* Extra: when tab becomes visible again, refresh content (prevents loading stuck) */
-document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "visible") {
-    const { data } = await supabaseClient.auth.getSession();
-    if (data?.session?.user) await refreshDashboard(data.session);
+/* ✅ Coming back / tab focus fixes */
+window.addEventListener("pageshow", async () => {
+  // Always re-check session when page is shown again
+  const { data } = await sb.auth.getSession();
+  if(data?.session?.user){
+    await refreshDashboard(data.session);
   }
 });
 
-// Default view
+document.addEventListener("visibilitychange", async ()=>{
+  if(document.visibilityState === "visible"){
+    const { data } = await sb.auth.getSession();
+    if(data?.session?.user){
+      await refreshDashboard(data.session);
+    }
+  }
+});
+
+// Default
 showLogin();
 </script>
 </body>
