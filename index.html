@@ -123,7 +123,7 @@
         <div class="row">
           <a class="btn"
              href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
-             target="_blank" rel="noopener">
+             target="_blank" rel="noopener noreferrer">
             Talk with LizOn
           </a>
         </div>
@@ -180,7 +180,6 @@ el("btnLogin").addEventListener("click", async ()=>{
 
     if(!email || !password) return setMsg("Email + password required.", false);
 
-    // 12s timeout so it can’t hang forever
     const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet / Supabase keys.")), 12000));
     const req = supabaseClient.auth.signInWithPassword({ email, password });
 
@@ -210,7 +209,6 @@ el("btnSignup").addEventListener("click", async ()=>{
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if(error) return setMsg(error.message, false);
 
-    // Try to create profile row (if RLS blocks, admin can insert manually)
     if(data?.user){
       const { error: pErr } = await supabaseClient.from("profiles").insert([{
         id: data.user.id,
@@ -266,9 +264,6 @@ async function loadMyProfile(){
 async function loadMyCourses(){
   el("myCoursesBox").innerHTML = "<small>Loading…</small>";
 
-  // We expect these columns in enrollments:
-  // user_id (uuid), course_id (int8), status (text), join_link (text), record_link (text)
-  // and courses: id, slug, title, description
   const { data, error } = await supabaseClient
     .from("enrollments")
     .select(`
@@ -303,11 +298,11 @@ async function loadMyCourses(){
     const rec = e.record_link || "";
 
     const joinBtn = join
-      ? `<a class="btn primary" href="${escapeHtml(join)}" target="_blank" rel="noopener">Join the Class</a>`
+      ? `<a class="btn primary" href="${escapeHtml(join)}" target="_blank" rel="noopener noreferrer">Join the Class</a>`
       : `<span class="tag">Join link missing</span>`;
 
     const recBtn = rec
-      ? `<a class="btn" href="${escapeHtml(rec)}" target="_blank" rel="noopener">Class Record</a>`
+      ? `<a class="btn" href="${escapeHtml(rec)}" target="_blank" rel="noopener noreferrer">Class Record</a>`
       : `<span class="tag">Record link missing</span>`;
 
     return `
@@ -330,29 +325,65 @@ async function loadMyCourses(){
 }
 
 /* ========= SESSION ========= */
+async function enterDashboard(session){
+  currentUser = session.user;
+
+  el("authCard").classList.add("hidden");
+  el("dashCard").classList.remove("hidden");
+  el("who").textContent = `Logged in as ${session.user.email}`;
+
+  await loadMyProfile();
+  await loadMyCourses();
+}
+
+function leaveDashboard(){
+  currentUser = null;
+  el("dashCard").classList.add("hidden");
+  el("authCard").classList.remove("hidden");
+  showLogin();
+}
+
 supabaseClient.auth.onAuthStateChange(async (_, session)=>{
   if(session?.user){
-    currentUser = session.user;
-
-    el("authCard").classList.add("hidden");
-    el("dashCard").classList.remove("hidden");
-    el("who").textContent = `Logged in as ${session.user.email}`;
-
-    await loadMyProfile();
-    await loadMyCourses();
+    await enterDashboard(session);
   }else{
-    currentUser = null;
-    el("dashCard").classList.add("hidden");
-    el("authCard").classList.remove("hidden");
-    showLogin();
+    leaveDashboard();
   }
 });
 
-/* ========= IMPORTANT FIX: Back button / return from links ========= */
-// If user goes to Join/Record then comes back, browser may restore a frozen page.
-// This forces a clean reload so logout + loading always works.
-window.addEventListener("pageshow", (event) => {
-  if (event.persisted) window.location.reload();
+/* ========= FINAL FIX: When user comes back from Join/Class Record ========= */
+// Browser may restore a frozen snapshot (BFCache), so we force refresh of session + data.
+async function refreshAfterReturn(){
+  try{
+    const { data } = await supabaseClient.auth.getSession();
+    const session = data?.session;
+
+    if(!session?.user){
+      // If session is gone, show auth screen
+      leaveDashboard();
+      return;
+    }
+
+    // If dashboard is visible, re-load data
+    if(!el("dashCard").classList.contains("hidden")){
+      currentUser = session.user;
+      await loadMyProfile();
+      await loadMyCourses();
+    }
+  }catch(e){
+    console.error("refreshAfterReturn error:", e);
+  }
+}
+
+window.addEventListener("pageshow", () => {
+  // Runs even when BFCache restores the page
+  refreshAfterReturn();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible"){
+    refreshAfterReturn();
+  }
 });
 
 // Default view
