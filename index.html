@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LizOn Student Portal</title>
+  <title>LizOn Portal</title>
   <meta name="theme-color" content="#0b2a1f" />
-  <link rel="manifest" href="/app.webmanifest">
   <link rel="icon" href="data:,">
 
   <style>
@@ -15,27 +14,29 @@
       --danger:#ff6b6b; --ok:#7CFFB2;
     }
     body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);}
-    .wrap{max-width:980px;margin:0 auto;padding:22px;}
+    .wrap{max-width:1050px;margin:0 auto;padding:22px;}
     .card{background:rgba(12,32,25,.92);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;}
     .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
     .between{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
     .btn{padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
     .btn.primary{border-color:rgba(215,178,74,.7);box-shadow:0 0 0 1px rgba(215,178,74,.25) inset}
     .btn.danger{border-color:rgba(255,107,107,.6)}
+    .btn.small{padding:10px 12px;border-radius:10px;font-size:14px}
     input, select{
       width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);
       background:#071a14;color:var(--text);
     }
     label{display:block;margin-top:10px}
     small{color:var(--muted)}
-    .hidden{display:none}
+    .hidden{display:none !important}
     .hr{height:1px;background:var(--line);margin:14px 0}
     .ok{color:var(--ok)}
     .err{color:var(--danger)}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    @media (max-width:760px){ .grid{grid-template-columns:1fr} }
+    @media (max-width:860px){ .grid{grid-template-columns:1fr} }
     .tag{display:inline-block;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:12px}
     .title{font-size:34px;margin:0}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
   </style>
 </head>
 
@@ -43,10 +44,13 @@
 <div class="wrap">
   <div class="between">
     <div>
-      <h1 class="title">LizOn Education — Student Portal</h1>
+      <h1 class="title">LizOn Education — Portal</h1>
       <small>Student Dashboard (WhatsApp purchase → Admin enrolls → Access here)</small>
     </div>
-    <a class="btn hidden" id="adminBtn" href="/admin.html">Admin Panel</a>
+    <div class="row">
+      <button class="btn hidden" id="btnGoAdmin" type="button">Admin Panel</button>
+      <button class="btn hidden danger" id="btnLogoutTop" type="button">Logout</button>
+    </div>
   </div>
 
   <!-- AUTH -->
@@ -97,14 +101,14 @@
     <p id="msg" style="margin-top:10px"></p>
   </div>
 
-  <!-- DASHBOARD -->
-  <div class="card hidden" id="dashCard">
+  <!-- STUDENT DASHBOARD -->
+  <div class="card hidden" id="studentCard">
     <div class="between">
       <div>
-        <h2 style="margin:0">Dashboard</h2>
-        <small id="who"></small>
+        <h2 style="margin:0">Student Dashboard</h2>
+        <small id="whoStudent"></small>
       </div>
-      <button class="btn danger" id="btnLogout" type="button">Logout</button>
+      <button class="btn danger" id="btnLogoutStudent" type="button">Logout</button>
     </div>
 
     <div class="hr"></div>
@@ -131,10 +135,69 @@
     </div>
 
     <div class="hr"></div>
-
     <h3 style="margin:0 0 10px 0">My Courses</h3>
     <div id="myCoursesBox"><small>Loading…</small></div>
   </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="card hidden" id="adminCard">
+    <div class="between">
+      <div>
+        <h2 style="margin:0">Admin Panel</h2>
+        <small id="whoAdmin"></small>
+      </div>
+      <span class="tag">Admin only</span>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="grid">
+      <div class="card" style="margin-top:0">
+        <h3 style="margin-top:0">Enroll Student</h3>
+
+        <label>Student User ID (UUID) <small class="mono">(recommended)</small>
+          <input id="studentUserId" placeholder="e.g. 8f8c0c7c-....">
+        </label>
+
+        <label>Select Course
+          <select id="courseSelect"></select>
+        </label>
+
+        <label>Join Link (WhatsApp group / Zoom / Meet)
+          <input id="joinLink" placeholder="https://chat.whatsapp.com/....">
+        </label>
+
+        <label>Class Record Link (Drive / YouTube playlist)
+          <input id="recordLink" placeholder="https://drive.google.com/... or https://youtube.com/...">
+        </label>
+
+        <label>Status
+          <select id="status">
+            <option value="active">active</option>
+            <option value="paused">paused</option>
+          </select>
+        </label>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="btnEnroll" type="button">Enroll / Add Course</button>
+        </div>
+
+        <p id="adminMsg"></p>
+        <small class="mono">Tip: Use Supabase Auth → Users → copy the user id.</small>
+      </div>
+
+      <div class="card" style="margin-top:0">
+        <h3 style="margin-top:0">Notes</h3>
+        <small>
+          - Admin role is read from <span class="mono">profiles.role</span><br>
+          - Students never see Admin Panel button<br>
+          - Enrollments expected columns: <span class="mono">user_id, course_id, status, join_link, record_link</span><br>
+          - courses expected: <span class="mono">id, slug, title, description</span>
+        </small>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -144,15 +207,16 @@ const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
 /* =============================================================== */
 
-/* ✅ One name only: supabase */
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const el = id => document.getElementById(id);
+const el = (id) => document.getElementById(id);
 const setMsg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
+const setAdminMsg = (t, ok=true)=>{ el("adminMsg").textContent=t||""; el("adminMsg").className=ok?"ok":"err"; };
 
 let currentUser = null;
+let currentRole = "student";
 
-/* ========= UI HELPERS ========= */
+/* ---------- helpers ---------- */
 function escapeHtml(s){
   return String(s || "").replace(/[&<>"']/g, (c) => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -173,11 +237,33 @@ function showSignup(){
   setMsg("");
 }
 
-/* ========= TAB EVENTS ========= */
+function showAuth(){
+  el("authCard").classList.remove("hidden");
+  el("studentCard").classList.add("hidden");
+  el("adminCard").classList.add("hidden");
+  el("btnGoAdmin").classList.add("hidden");
+  el("btnLogoutTop").classList.add("hidden");
+}
+function showStudent(){
+  el("authCard").classList.add("hidden");
+  el("studentCard").classList.remove("hidden");
+  el("adminCard").classList.add("hidden");
+  el("btnLogoutTop").classList.remove("hidden");
+  el("btnGoAdmin").classList.add("hidden"); // students never see it
+}
+function showAdmin(){
+  el("authCard").classList.add("hidden");
+  el("studentCard").classList.add("hidden");
+  el("adminCard").classList.remove("hidden");
+  el("btnLogoutTop").classList.remove("hidden");
+  el("btnGoAdmin").classList.remove("hidden"); // admins see it
+}
+
+/* ---------- TAB EVENTS ---------- */
 el("tabLogin").addEventListener("click", showLogin);
 el("tabSignup").addEventListener("click", showSignup);
 
-/* ========= AUTH ========= */
+/* ---------- AUTH EVENTS ---------- */
 el("btnLogin").addEventListener("click", async ()=>{
   setMsg("Logging in…");
   try{
@@ -185,14 +271,15 @@ el("btnLogin").addEventListener("click", async ()=>{
     const password = el("loginPass").value;
     if(!email || !password) return setMsg("Email + password required.", false);
 
-    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet / keys.")), 12000));
+    const timeout = new Promise((_, rej) => setTimeout(()=>rej(new Error("Login timeout. Check internet / Supabase keys.")), 12000));
     const req = supabase.auth.signInWithPassword({ email, password });
     const { data, error } = await Promise.race([req, timeout]);
 
     if(error) return setMsg(error.message, false);
-    if(!data?.session) return setMsg("Login OK but no session. Check email confirmation.", false);
+    if(!data?.session?.user) return setMsg("No session returned.", false);
 
     setMsg("");
+    // UI will update via onAuthStateChange
   }catch(e){
     setMsg(e.message || "Login failed.", false);
   }
@@ -205,71 +292,65 @@ el("btnSignup").addEventListener("click", async ()=>{
     const phone = el("suPhone").value.trim();
     const email = el("suEmail").value.trim();
     const password = el("suPass").value;
-
     if(!name || !phone || !email || !password) return setMsg("All fields are required.", false);
 
-    const timeout = new Promise((_, rej) =>
-      setTimeout(()=>rej(new Error("Signup timeout. Check CORS / internet / Supabase project status.")), 12000)
-    );
-
-    const req = supabase.auth.signUp({ email, password });
-    const { data, error } = await Promise.race([req, timeout]);
-
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if(error) return setMsg(error.message, false);
 
-    // Best-effort profile insert (may be blocked by RLS)
+    // Best-effort: create profiles row. (If RLS blocks, you'll see message.)
     if(data?.user){
       const { error: pErr } = await supabase.from("profiles").insert([{
-        id: data.user.id, name, phone, role: "student"
+        id: data.user.id,
+        name,
+        phone,
+        role: "student"
       }]);
       if(pErr){
-        setMsg("Account created ✅ Verify email (if required) then login. (Profile insert may need admin.)", true);
-      } else {
-        setMsg("Account created ✅ Verify email (if required) then login.", true);
+        return setMsg("Account created ✅ but profile insert blocked by RLS. Admin must create profile row once.", false);
       }
-    } else {
-      setMsg("Account created ✅ Check email verification, then login.", true);
     }
 
+    setMsg("Account created ✅. Now login.", true);
     showLogin();
   }catch(e){
     setMsg(e.message || "Signup failed.", false);
   }
 });
 
-/* ✅ Logout that always works + avoids BFCache zombie state */
-el("btnLogout").addEventListener("click", async ()=>{
+/* ---------- LOGOUT (hard reset to avoid BFCache zombie) ---------- */
+async function doLogout(){
   try{ await supabase.auth.signOut(); }
-  finally{ window.location.replace(window.location.pathname); }
-});
+  finally{
+    // Hard reload the current page to reset any cached state
+    window.location.replace(window.location.pathname);
+  }
+}
+el("btnLogoutStudent").addEventListener("click", doLogout);
+el("btnLogoutTop").addEventListener("click", doLogout);
 
-/* ========= LOADERS ========= */
+/* ---------- profile & courses loaders ---------- */
+async function getRole(userId){
+  const { data, error } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if(error) throw new Error(error.message);
+  return (data?.role || "student");
+}
+
 async function loadMyProfile(){
   el("profileView").innerHTML = "<small>Loading…</small>";
-
   const { data, error } = await supabase
     .from("profiles")
     .select("name, phone, role")
     .eq("id", currentUser.id)
     .maybeSingle();
 
-  if(error) { el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`; return null; }
-  if(!data){ el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`; return null; }
+  if(error) return el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+  if(!data) return el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
 
   el("profileView").innerHTML = `
     <p><b>Name:</b> ${escapeHtml(data.name||"")}</p>
     <p><b>Phone:</b> ${escapeHtml(data.phone||"")}</p>
     <p><b>Role:</b> ${escapeHtml(data.role||"student")}</p>
   `;
-
-  // ✅ Only show Admin Panel button if role=admin
-  if((data.role||"").toLowerCase() === "admin"){
-    el("adminBtn").classList.remove("hidden");
-  } else {
-    el("adminBtn").classList.add("hidden");
-  }
-
-  return data;
 }
 
 async function loadMyCourses(){
@@ -309,11 +390,11 @@ async function loadMyCourses(){
     const rec = e.record_link || "";
 
     const joinBtn = join
-      ? `<a class="btn primary" href="${escapeHtml(join)}" target="_blank" rel="noopener noreferrer">Join the Class</a>`
+      ? `<a class="btn primary jsExternal" href="${escapeHtml(join)}" target="_blank" rel="noopener noreferrer">Join the Class</a>`
       : `<span class="tag">Join link missing</span>`;
 
     const recBtn = rec
-      ? `<a class="btn" href="${escapeHtml(rec)}" target="_blank" rel="noopener noreferrer">Class Record</a>`
+      ? `<a class="btn jsExternal" href="${escapeHtml(rec)}" target="_blank" rel="noopener noreferrer">Class Record</a>`
       : `<span class="tag">Record link missing</span>`;
 
     return `
@@ -335,42 +416,113 @@ async function loadMyCourses(){
   }).join("");
 }
 
-/* ========= SESSION ========= */
-async function refreshDashboard(session){
-  currentUser = session.user;
-
-  el("authCard").classList.add("hidden");
-  el("dashCard").classList.remove("hidden");
-  el("who").textContent = `Logged in as ${session.user.email}`;
-
-  await loadMyProfile();
-  await loadMyCourses();
+/* ---------- admin loaders & actions ---------- */
+async function loadCoursesForAdmin(){
+  const sel = el("courseSelect");
+  sel.innerHTML = `<option>Loading…</option>`;
+  const { data, error } = await supabase.from("courses").select("id, slug, title").order("id",{ascending:true});
+  if(error) throw new Error(error.message);
+  sel.innerHTML = data.map(c => `<option value="${c.id}">${escapeHtml((c.slug||"").toUpperCase())} — ${escapeHtml(c.title||"")}</option>`).join("");
 }
 
+el("btnGoAdmin").addEventListener("click", async ()=>{
+  // toggle admin view
+  if(currentRole === "admin") showAdmin();
+});
+
+el("btnEnroll").addEventListener("click", async ()=>{
+  setAdminMsg("Enrolling…");
+  try{
+    if(currentRole !== "admin") throw new Error("Not admin.");
+
+    const user_id = el("studentUserId").value.trim();
+    const course_id = Number(el("courseSelect").value);
+    const join_link = el("joinLink").value.trim() || null;
+    const record_link = el("recordLink").value.trim() || null;
+    const status = el("status").value;
+
+    if(!user_id) return setAdminMsg("Student User ID (UUID) required.", false);
+    if(!course_id) return setAdminMsg("Course required.", false);
+    if(!join_link && !record_link) return setAdminMsg("Add Join link or Record link (at least one).", false);
+
+    const { error } = await supabase.from("enrollments").upsert([{
+      user_id,
+      course_id,
+      status,
+      join_link,
+      record_link
+    }], { onConflict: "user_id,course_id" });
+
+    if(error) throw new Error(error.message);
+
+    setAdminMsg("Enrolled ✅ (course added/updated).", true);
+    el("joinLink").value = "";
+    el("recordLink").value = "";
+  }catch(e){
+    setAdminMsg(e.message || "Enroll failed.", false);
+  }
+});
+
+/* ---------- main refresh ---------- */
+async function refreshUI(session){
+  currentUser = session.user;
+  currentRole = await getRole(currentUser.id);
+
+  el("btnLogoutTop").classList.remove("hidden");
+
+  if(currentRole === "admin"){
+    el("whoAdmin").textContent = `Logged in as ${currentUser.email}`;
+    el("btnGoAdmin").classList.remove("hidden");
+    await loadCoursesForAdmin();
+    showAdmin(); // admins land to admin panel
+  } else {
+    el("whoStudent").textContent = `Logged in as ${currentUser.email}`;
+    showStudent();
+    await loadMyProfile();
+    await loadMyCourses();
+  }
+}
+
+/* ---------- auth state ---------- */
 supabase.auth.onAuthStateChange(async (_, session)=>{
   if(session?.user){
-    await refreshDashboard(session);
+    try{
+      await refreshUI(session);
+    }catch(e){
+      // if profile role fetch fails, show auth and message
+      showAuth();
+      setMsg(e.message || "Failed to load session.", false);
+    }
   } else {
     currentUser = null;
-    el("adminBtn").classList.add("hidden");
-    el("dashCard").classList.add("hidden");
-    el("authCard").classList.remove("hidden");
+    currentRole = "student";
+    showAuth();
     showLogin();
   }
 });
 
-/* ✅ Fix “back from link” issues (BFCache zombie page) */
-window.addEventListener("pageshow", (e) => {
-  if (e.persisted) window.location.reload();
-});
-document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "visible") {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session?.user) await refreshDashboard(data.session);
+/* ---------- BFCache / returning from external links ---------- */
+/* This is the main fix for: “Back to portal -> Loading… + logout dead” */
+window.addEventListener("pageshow", async (e) => {
+  // If restored from BFCache, re-bind state by refreshing session
+  const { data } = await supabase.auth.getSession();
+  if(data?.session?.user){
+    await refreshUI(data.session);
   }
 });
 
-// Default
+/* Also refresh when tab becomes visible again */
+document.addEventListener("visibilitychange", async () => {
+  if(document.visibilityState === "visible"){
+    const { data } = await supabase.auth.getSession();
+    if(data?.session?.user){
+      await refreshUI(data.session);
+    }
+  }
+});
+
+/* Default view */
+showAuth();
 showLogin();
 </script>
 </body>
