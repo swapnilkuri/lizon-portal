@@ -53,7 +53,7 @@
     </label>
     <div class="row" style="margin-top:12px">
       <button class="btn primary" id="btnLogin" type="button">Login</button>
-      <button class="btn danger" id="btnLogout" type="button">Logout</button>
+      <button class="btn danger" id="btnLogoutLoginCard" type="button">Logout</button>
     </div>
     <p id="msg"></p>
   </div>
@@ -65,12 +65,24 @@
         <h2 style="margin:0">Enroll Tool</h2>
         <small id="who"></small>
       </div>
-      <span class="tag">Admin only</span>
+      <div class="row">
+        <span class="tag">Admin only</span>
+        <button class="btn danger" id="btnLogout" type="button">Logout</button>
+      </div>
     </div>
 
     <div class="hr"></div>
 
-    <label>Student Email (must be signed up already)
+    <p style="margin:0 0 10px 0"><small>
+      Best practice: enroll by <b>User ID (UUID)</b> from Supabase → Authentication → Users.
+      Email lookup works only if you add <code>profiles.email</code>.
+    </small></p>
+
+    <label>Student User ID (UUID) — recommended
+      <input id="studentUserId" placeholder="e.g. 3b8f0f9e-....-....-....-........">
+    </label>
+
+    <label>OR Student Email (only works if profiles.email exists)
       <input id="studentEmail" placeholder="student@example.com">
     </label>
 
@@ -108,7 +120,7 @@ const SUPABASE_URL = "https://swgerukvltraldtjueih.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_RbWdA9MwSVNKqZ-Q4GWN3Q_iiOYFedG";
 /* =============================================================== */
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const el = id => document.getElementById(id);
 const setMsg = (t, ok=true)=>{ el("msg").textContent=t||""; el("msg").className=ok?"ok":"err"; };
@@ -122,14 +134,18 @@ function escapeHtml(s){
   }[c]));
 }
 
-async function requireAdmin(){
-  // Check profile.role
-  const { data, error } = await sb.from("profiles").select("role").eq("id", adminUser.id).maybeSingle();
+async function requireAdminOrKick(){
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", adminUser.id)
+    .maybeSingle();
+
   if(error) throw new Error(error.message);
-  const role = data?.role || "student";
+
+  const role = (data?.role || "student").toLowerCase();
   if(role !== "admin"){
-    // Kick out if not admin
-    await sb.auth.signOut();
+    await supabase.auth.signOut();
     adminUser = null;
     el("toolCard").classList.add("hidden");
     el("loginCard").classList.remove("hidden");
@@ -141,10 +157,29 @@ async function loadCourses(){
   const sel = el("courseSelect");
   sel.innerHTML = `<option>Loading…</option>`;
 
-  const { data, error } = await sb.from("courses").select("id, slug, title").order("id",{ascending:true});
+  const { data, error } = await supabase
+    .from("courses")
+    .select("id, slug, title")
+    .order("id",{ascending:true});
+
   if(error) throw new Error(error.message);
 
-  sel.innerHTML = data.map(c=>`<option value="${c.id}">${escapeHtml((c.slug||"").toUpperCase())} — ${escapeHtml(c.title||"")}</option>`).join("");
+  sel.innerHTML = data.map(c =>
+    `<option value="${c.id}">${escapeHtml((c.slug||"").toUpperCase())} — ${escapeHtml(c.title||"")}</option>`
+  ).join("");
+}
+
+async function showTool(){
+  el("who").textContent = `Logged in as ${adminUser.email}`;
+  el("loginCard").classList.add("hidden");
+  el("toolCard").classList.remove("hidden");
+  setMsg("");
+  setToolMsg("Ready.", true);
+}
+
+async function hideTool(){
+  el("toolCard").classList.add("hidden");
+  el("loginCard").classList.remove("hidden");
 }
 
 el("btnLogin").addEventListener("click", async ()=>{
@@ -154,59 +189,77 @@ el("btnLogin").addEventListener("click", async ()=>{
     const password = el("pass").value;
     if(!email || !password) return setMsg("Email + password required.", false);
 
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if(error) return setMsg(error.message, false);
     if(!data?.session?.user) return setMsg("No session returned.", false);
 
     adminUser = data.session.user;
 
-    await requireAdmin();
+    await requireAdminOrKick();
     await loadCourses();
-
-    el("who").textContent = `Logged in as ${adminUser.email}`;
-    el("loginCard").classList.add("hidden");
-    el("toolCard").classList.remove("hidden");
-    setMsg("");
-    setToolMsg("Ready.", true);
+    await showTool();
 
   }catch(e){
     setMsg(e.message || "Admin login failed.", false);
   }
 });
 
-el("btnLogout").addEventListener("click", async ()=>{
-  try{ await sb.auth.signOut(); }
+async function doLogout(){
+  try{ await supabase.auth.signOut(); }
   finally{ window.location.replace(window.location.pathname); }
-});
+}
+
+el("btnLogout").addEventListener("click", doLogout);
+el("btnLogoutLoginCard").addEventListener("click", doLogout);
 
 el("btnEnroll").addEventListener("click", async ()=>{
   setToolMsg("Enrolling…");
   try{
+    if(!adminUser) throw new Error("Not logged in.");
+
+    // re-check admin role each action (simple safety)
+    await requireAdminOrKick();
+
+    const userId = el("studentUserId").value.trim();
     const email = el("studentEmail").value.trim().toLowerCase();
     const course_id = Number(el("courseSelect").value);
     const join_link = el("joinLink").value.trim() || null;
     const record_link = el("recordLink").value.trim() || null;
     const status = el("status").value;
 
-    if(!email) return setToolMsg("Student email required.", false);
     if(!course_id) return setToolMsg("Course required.", false);
     if(!join_link && !record_link) return setToolMsg("Add Join link or Record link (at least one).", false);
 
-    // Find user by profiles (student must exist there)
-    const { data: prof, error: pErr } = await sb.from("profiles").select("id").ilike("email", email).maybeSingle();
-    // If your profiles table doesn't have email column, you must add it OR enroll by user_id manually.
-    if(pErr) throw new Error("profiles.email not found or blocked. Add email column to profiles OR enroll by user_id.");
-    if(!prof?.id) throw new Error("Student not found in profiles. Make sure the student signed up and profile row exists.");
+    let targetUserId = userId;
 
-    const user_id = prof.id;
+    // If UUID not provided, try email lookup (only works if profiles.email exists)
+    if(!targetUserId){
+      if(!email) return setToolMsg("Provide Student User ID (UUID) OR Email.", false);
 
-    const { error } = await sb.from("enrollments").upsert([{
-      user_id,
-      course_id,
-      status,
-      join_link,
-      record_link
-    }], { onConflict: "user_id,course_id" });
+      const { data: prof, error: pErr } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
+
+      if(pErr){
+        throw new Error("Email lookup failed. Add profiles.email OR use Student User ID (UUID).");
+      }
+      if(!prof?.id){
+        throw new Error("Student not found. Make sure profile exists or use Student User ID (UUID).");
+      }
+      targetUserId = prof.id;
+    }
+
+    const { error } = await supabase
+      .from("enrollments")
+      .upsert([{
+        user_id: targetUserId,
+        course_id,
+        status,
+        join_link,
+        record_link
+      }], { onConflict: "user_id,course_id" });
 
     if(error) throw new Error(error.message);
 
@@ -219,20 +272,23 @@ el("btnEnroll").addEventListener("click", async ()=>{
   }
 });
 
-// If page returns from BFCache, re-check session
-window.addEventListener("pageshow", async ()=>{
-  const { data } = await sb.auth.getSession();
+/* BFCache / back-button fix */
+window.addEventListener("pageshow", async (e)=>{
+  if(e.persisted) return window.location.reload();
+
+  const { data } = await supabase.auth.getSession();
   if(data?.session?.user){
     adminUser = data.session.user;
     try{
-      await requireAdmin();
+      await requireAdminOrKick();
       await loadCourses();
-      el("who").textContent = `Logged in as ${adminUser.email}`;
-      el("loginCard").classList.add("hidden");
-      el("toolCard").classList.remove("hidden");
-    }catch(e){
-      // ignore, requireAdmin will kick out
+      await showTool();
+    }catch(_){
+      await hideTool();
     }
+  }else{
+    adminUser = null;
+    await hideTool();
   }
 });
 </script>
