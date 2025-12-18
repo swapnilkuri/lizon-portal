@@ -28,7 +28,7 @@
     }
     label{display:block;margin-top:10px}
     small{color:var(--muted)}
-    .hidden{display:none}
+    .hidden{display:none !important;}
     .hr{height:1px;background:var(--line);margin:14px 0}
     .ok{color:var(--ok)}
     .err{color:var(--danger)}
@@ -46,6 +46,8 @@
       <h1 class="title">LizOn Education — Student Portal</h1>
       <small>Student Dashboard (WhatsApp purchase → Admin enrolls → Access here)</small>
     </div>
+
+    <!-- Hidden by default; only shows if role=admin -->
     <a class="btn hidden" id="adminBtn" href="/admin.html">Admin Panel</a>
   </div>
 
@@ -123,7 +125,7 @@
         <div class="row">
           <a class="btn"
              href="https://api.whatsapp.com/send/?phone=8801611611139&text=Hi%2C+need+guidance+for+IELTS+Journey.&type=phone_number&app_absent=0"
-             target="_blank" rel="noopener">
+             target="_blank" rel="noopener noreferrer">
             Talk with LizOn
           </a>
         </div>
@@ -232,13 +234,13 @@ el("btnSignup").addEventListener("click", async ()=>{
   }
 });
 
-/* ✅ LOGOUT FIX (works even after returning from Join link) */
+/* ✅ Logout: always works + avoids “back cache zombie” state */
 el("btnLogout").addEventListener("click", async ()=>{
   try{
     await supabaseClient.auth.signOut();
   } finally {
-    // Hard refresh to avoid BFCache zombie state
-    window.location.href = window.location.pathname;
+    // Hard reload to reset any cached / restored state
+    window.location.replace(window.location.pathname);
   }
 });
 
@@ -252,14 +254,24 @@ async function loadMyProfile(){
     .eq("id", currentUser.id)
     .maybeSingle();
 
-  if(error) return el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
-  if(!data) return el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
+  if(error) {
+    el("adminBtn").classList.add("hidden");
+    return el("profileView").innerHTML = `<p class="err">${escapeHtml(error.message)}</p>`;
+  }
+  if(!data) {
+    el("adminBtn").classList.add("hidden");
+    return el("profileView").innerHTML = `<p class="err">Profile not found. Admin can add your profile row once.</p>`;
+  }
 
   el("profileView").innerHTML = `
     <p><b>Name:</b> ${escapeHtml(data.name||"")}</p>
     <p><b>Phone:</b> ${escapeHtml(data.phone||"")}</p>
     <p><b>Role:</b> ${escapeHtml(data.role||"student")}</p>
   `;
+
+  // ✅ Show Admin Panel ONLY for admins
+  if((data.role||"").toLowerCase() === "admin") el("adminBtn").classList.remove("hidden");
+  else el("adminBtn").classList.add("hidden");
 }
 
 async function loadMyCourses(){
@@ -301,11 +313,11 @@ async function loadMyCourses(){
     const rec = e.record_link || "";
 
     const joinBtn = join
-      ? `<a class="btn primary courseLink" href="${escapeHtml(join)}" target="_blank" rel="noopener">Join the Class</a>`
+      ? `<a class="btn primary" href="${escapeHtml(join)}" target="_blank" rel="noopener noreferrer">Join the Class</a>`
       : `<span class="tag">Join link missing</span>`;
 
     const recBtn = rec
-      ? `<a class="btn courseLink" href="${escapeHtml(rec)}" target="_blank" rel="noopener">Class Record</a>`
+      ? `<a class="btn" href="${escapeHtml(rec)}" target="_blank" rel="noopener noreferrer">Class Record</a>`
       : `<span class="tag">Record link missing</span>`;
 
     return `
@@ -333,6 +345,7 @@ async function refreshDashboard(session){
   el("authCard").classList.add("hidden");
   el("dashCard").classList.remove("hidden");
   el("who").textContent = `Logged in as ${session.user.email}`;
+
   await loadMyProfile();
   await loadMyCourses();
 }
@@ -342,19 +355,19 @@ supabaseClient.auth.onAuthStateChange(async (_, session)=>{
     await refreshDashboard(session);
   } else {
     currentUser = null;
+    el("adminBtn").classList.add("hidden");
     el("dashCard").classList.add("hidden");
     el("authCard").classList.remove("hidden");
     showLogin();
   }
 });
 
-/* ✅ BFCache + “return from link” fixes */
+/* ✅ BFCache fix: if user returns from external link using Back, reload page */
 window.addEventListener("pageshow", (e) => {
-  // If page is restored from BFCache, reload to avoid frozen JS listeners
   if (e.persisted) window.location.reload();
 });
 
-// Extra: when tab becomes visible again, refresh dashboard (if logged in)
+/* Extra: when tab becomes visible again, refresh content (prevents loading stuck) */
 document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible") {
     const { data } = await supabaseClient.auth.getSession();
